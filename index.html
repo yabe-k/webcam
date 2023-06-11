@@ -8,12 +8,14 @@
   <title>Webcam controller</title>
 </head>
 <body>
-    <div id="wrapper">
-        <div class="center title"><h1 >Webcam Controller</h1></div>
-        <select id="select-camera">
+    <!--<div id="wrapper">-->
+        <select id="select-camera" class="table_wraper">
             <option>(Select a camera)</option>
         </select>
-        <table class="gray_bg control_table"><tbody>
+        <div>
+            Width:<input id="video-width" type="tel"> px  Height:<input id="video-height" type="tel"> px
+        </div>
+        <div class="table_wraper"><table class="gray_bg control_table"><tbody>
             <tr>
                 <th>Take a single shot</th>
                 <td></td>
@@ -80,17 +82,23 @@
             </tr>
         -->
 
-        </tbody></table>
+        </tbody></table></div>
         <div>
             <video id="video"></video>
         </div>
-    </div>
+    <!-- </div> -->
     <canvas id="picture" width="10000" height="10000"></canvas>
     <script>
-        ///*
-        const video = document.getElementById("video")
+        var video_width = 1920;
+        var video_height = 1080;
+        document.getElementById("video-width").value = video_width;
+        document.getElementById("video-height").value = video_height;
+        const video = document.getElementById("video");
         navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: {
+                width: cameraWidth,
+                height: cameraHeight,
+            },
             audio: false,
         }).then(stream => {
             video.srcObject = stream;
@@ -103,7 +111,7 @@
                 function(devices){
                     var select = document.getElementById("select-camera");
                     devices.forEach(function(device) {
-                        console.log(device.kind, device.label);
+                        //console.log(device.kind, device.label);
                         var option = document.createElement("option");
                         option.text = device.label;
                         option.value = device.deviceId;
@@ -116,21 +124,8 @@
         )
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
         document.getElementById("select-camera").addEventListener("change", function(){
-            var selectedId = this.value;
-            console.log(selectedId);
-            navigator.mediaDevices.getUserMedia({
-                video: {
-                    deviceId: selectedId
-                },
-                audio: false,
-            }).then(stream => {
-                video.srcObject = stream;
-                video.play()
-            }).catch(e => {
-                console.log(e)
-            })
+            playVideo();
         });
-        //*/
     </script>
 </body>
 </html>
