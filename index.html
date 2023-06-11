@@ -89,8 +89,8 @@
     <!-- </div> -->
     <canvas id="picture" width="10000" height="10000"></canvas>
     <script>
-        var video_width = 1920;
-        var video_height = 1080;
+        var video_width = 640;
+        var video_height = 480;
         document.getElementById("video-width").value = video_width;
         document.getElementById("video-height").value = video_height;
         const video = document.getElementById("video");
@@ -124,6 +124,12 @@
         )
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
         document.getElementById("select-camera").addEventListener("change", function(){
+            playVideo();
+        });
+        document.getElementById("video-width").addEventListener("change", function(){
+            playVideo();
+        });
+        document.getElementById("video-height").addEventListener("change", function(){
             playVideo();
         });
     </script>
