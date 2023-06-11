@@ -27,6 +27,12 @@ function getTime(){
 
 function playVideo(){
     const video = document.getElementById("video");
+    const tracks = video.srcObject.getTracks();
+    tracks.forEach(track => {
+        track.stop();
+    });
+    video.srcObject = null;
+    
     var selectedId = document.getElementById("select-camera").value;
     var video_height = document.getElementById("video-height").value;
     var video_width = document.getElementById("video-width").value;
