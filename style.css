@@ -1,21 +1,17 @@
 #wrapper{
-    min-width: 400px;
-    max-width: 640px;
+    min-width: 600px;
+    max-width: 700px;
     width: 80%;
     margin: auto;
 }
-/*#video{
+#video{
     width: 100%;
-}*/
+}
 .center{
     text-align: center;
 }
 .gray_bg{
     background-color: lightgray;
-}
-.table_wraper{
-    min-width: 600px;
-    max-width: 700px;
 }
 .control_table{
     width: 100%;

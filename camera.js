@@ -38,3 +38,9 @@ function playVideo(){
         
     })
 }
+
+function inputVal(w, h) {
+    document.getElementById("video-height").value = h;
+    document.getElementById("video-width").value = w;
+    playVideo();
+}

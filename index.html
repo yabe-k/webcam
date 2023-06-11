@@ -8,12 +8,22 @@
   <title>Webcam controller</title>
 </head>
 <body>
-    <!--<div id="wrapper">-->
+    <div id="wrapper">
         <select id="select-camera" class="table_wraper">
             <option>(Select a camera)</option>
         </select>
         <div>
             Width:<input id="video-width" type="tel"> px  Height:<input id="video-height" type="tel"> px
+        </div>
+        <div>
+            <table style="width: 100%;"><tbody>
+                <tr>
+                    <td onclick="inputVal(640, 480)">640×480</td>
+                    <td onclick="inputVal(1280, 720)">1280×720</td>
+                    <td onclick="inputVal(1280, 960)">1280×960</td>
+                    <td onclick="inputVal(1920, 1080)">1920×1080</td>
+                </tr>
+            </tbody></table>
         </div>
         <div class="table_wraper"><table class="gray_bg control_table"><tbody>
             <tr>
@@ -81,47 +91,19 @@
                 </td>
             </tr>
         -->
-
         </tbody></table></div>
-        <div>
-            <video id="video"></video>
-        </div>
-    <!-- </div> -->
+    </div>
+    <div>
+        <video id="video"></video>
+    </div>
+    
     <canvas id="picture" width="10000" height="10000"></canvas>
     <script>
         var video_width = 640;
         var video_height = 480;
         document.getElementById("video-width").value = video_width;
         document.getElementById("video-height").value = video_height;
-        const video = document.getElementById("video");
-        navigator.mediaDevices.getUserMedia({
-            video: {
-                width: video_width,
-                height: video_height,
-            },
-            audio: false,
-        }).then(stream => {
-            video.srcObject = stream;
-            video.play()
-        }).catch(e => {
-          console.log(e)
-        }).finally(
-            navigator.mediaDevices.enumerateDevices()
-            .then(
-                function(devices){
-                    var select = document.getElementById("select-camera");
-                    devices.forEach(function(device) {
-                        //console.log(device.kind, device.label);
-                        var option = document.createElement("option");
-                        option.text = device.label;
-                        option.value = device.deviceId;
-                        select.appendChild(option);
-                    });
-                }
-            ).catch(
-                console.log("Failed to load the device list")
-            )
-        )
+        playVideo();
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
         document.getElementById("select-camera").addEventListener("change", function(){
             playVideo();
