@@ -102,7 +102,8 @@
             .then(
                 function(devices){
                     devices.forEach(function(device) {
-                        console.log(device.kind, device.label)
+                        console.log(device.kind, device.label);
+                        addOption(device.label, device.deviceId);
                     });
                 }
             ).catch(
