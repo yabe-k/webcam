@@ -1,0 +1,38 @@
+#wrapper{
+    min-width: 400px;
+    max-width: 640px;
+    width: 80%;
+    margin: auto;
+}
+#video{
+    width: 100%;
+}
+.center{
+    text-align: center;
+}
+.title{
+    background-color: black;
+    color: rgb(198, 252, 252);
+}
+.gray_bg{
+    background-color: lightgray;
+}
+.control_table{
+    width: 100%;
+}
+input{
+    width: 50px;
+}
+table{
+    border: 2px azure solid;
+}
+body{
+    background: azure;
+}
+.spacer{
+    border-bottom: 2px solid azure;
+    height: 0px;
+}
+#select-camera{
+    width: 100%;
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="./camera.js"></script>
+  <title>Webcam controller</title>
+</head>
+<body>
+    <div id="wrapper">
+        <div class="center title"><h1 >Webcam Controller</h1></div>
+        <select id="select-camera">
+            <option>Select a camera</option>
+        </select>
+        <table class="gray_bg control_table"><tbody>
+            <tr>
+                <th>Take a single shot</th>
+                <td></td>
+                <td></td>
+                <td><button id="capture_button">snap</button></td>
+            </tr>
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            <tr>
+                <th rowspan="2">Timelupse capturing</th>
+                <td>With the interval of: </thead></td>
+                <td>
+                    <input id="timelupse-minutes" type="tel"> minutes
+                </td>
+                <td rowspan="2">
+                    <button>start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>At maximum: </td>
+                <td>
+                    <input id="timelupse-number" type="tel"> pictures
+                </td>
+            </tr>
+            <!--
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            <tr>
+                <th rowspan="3">Intermittent recording</th>
+                <td>With the interval of: </thead></td>
+                <td>
+                    <input type="tel"> minutes
+                </td>
+                <td rowspan="3">
+                    <button>start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>Duration of 1 movie: </td>
+                <td>
+                    <input type="tel"> minutes
+                </td>
+            </tr>
+            <tr>
+                <td>At maximum: </td>
+                <td>
+                    <input type="tel"> movies
+                </td>
+            </tr>
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            <tr>
+                <th rowspan="2">Continuous recording</th>
+                <td>At maximum: </thead></td>
+                <td>
+                    <input type="tel"> hours
+                </td>
+                <td rowspan="2">
+                    <button>start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>Split movies every</td>
+                <td>
+                    <input type="tel"> minutes
+                </td>
+            </tr>
+        -->
+
+        </tbody></table>
+        <div>
+            <video id="video"></video>
+        </div>
+    </div>
+    <canvas id="picture" width="10000" height="10000"></canvas>
+    <script>
+        ///*
+        const video = document.getElementById("video")
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+        }).then(stream => {
+            video.srcObject = stream;
+            video.play()
+        }).catch(e => {
+          console.log(e)
+        })
+        document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
+        //*/
+        ///*
+        navigator.mediaDevices.enumerateDevices()
+        .then(
+            function(devices){
+                devices.forEach(function(device) {
+                    console.log(device.kind, device.label)
+                });
+            }
+        ).catch(
+            console.log("Failed to load the device list")
+        )
+        //*/
+    </script>
+</body>
+</html>
