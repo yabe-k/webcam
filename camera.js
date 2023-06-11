@@ -13,3 +13,10 @@ function getTime(){
     return now.getFullYear() + "-" + ("00" + String(Number(now.getMonth()) + 1)).slice(-2) + "-" + ("00" + now.getDate()).slice(-2) + "_" + ("00" + now.getHours()).slice(-2) + "-" + ("00" + now.getMinutes()).slice(-2)+ "-" + ("00" + now.getSeconds()).slice(-2)
 }
 
+function addOption(name, id) {
+    var select = document.getElementById("select-camera");
+    var option = document.createElement("option");
+    option.text = name;
+    option.value = id;
+    select.appendChild(option);
+}
