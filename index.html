@@ -96,8 +96,8 @@
         const video = document.getElementById("video");
         navigator.mediaDevices.getUserMedia({
             video: {
-                width: cameraWidth,
-                height: cameraHeight,
+                width: video_width,
+                height: video_height,
             },
             audio: false,
         }).then(stream => {
