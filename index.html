@@ -11,7 +11,7 @@
     <div id="wrapper">
         <div class="center title"><h1 >Webcam Controller</h1></div>
         <select id="select-camera">
-            <option>Select a camera</option>
+            <option>(Select a camera)</option>
         </select>
         <table class="gray_bg control_table"><tbody>
             <tr>
@@ -115,6 +115,21 @@
             )
         )
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
+        document.getElementById("select-camera").addEventListener("change", function(){
+            var selectedId = this.value;
+            console.log(selectedId);
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: selectedId
+                },
+                audio: false,
+            }).then(stream => {
+                video.srcObject = stream;
+                video.play()
+            }).catch(e => {
+                console.log(e)
+            })
+        });
         //*/
     </script>
 </body>
