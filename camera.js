@@ -1,11 +1,23 @@
-function captureImage(video){
+function captureImage(video, w, h){
     const canvas = document.getElementById("picture")
     const soundFile = "./sound/sound2.mp3";
     const audio = new Audio(soundFile);
     audio.play();
     const fileName = "capture_" + getTime() + ".png";
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, w, h);
+
+    canvas.toBlob( blob =>{
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        console.log(getTime() + ".png");
+        a.download = getTime() + ".png";
+        a.click();
+
+        URL.revokeObjectURL(a.href);
+        
+    },"image/png",1.0);
+
 }
 
 function getTime(){
@@ -32,10 +44,9 @@ function playVideo(){
     }).catch(e => {
         console.log(e)
     }).finally(() => {
-        
-        var canvas = document.getElementById("picture")
-        var w = video.clientWidth;
-        var h = video.clientHeight;
+        canvas = document.getElementById("picture");
+        canvas.width = video_width;
+        canvas.height = video_height;
         
     })
 }

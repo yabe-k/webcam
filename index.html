@@ -16,11 +16,12 @@
             Width:<input id="video-width" type="tel"> px  Height:<input id="video-height" type="tel"> px
         </div>
         <div>
-            <table style="width: 100%;"><tbody>
+            <table style="width: 100%; text-decoration: underline;"><tbody>
                 <tr>
                     <td onclick="inputVal(640, 480)">640×480</td>
                     <td onclick="inputVal(1280, 720)">1280×720</td>
                     <td onclick="inputVal(1280, 960)">1280×960</td>
+                    <td onclick="inputVal(1600, 900)">1600×900</td>
                     <td onclick="inputVal(1920, 1080)">1920×1080</td>
                 </tr>
             </tbody></table>
@@ -92,18 +93,18 @@
             </tr>
         -->
         </tbody></table></div>
-    </div>
-    <div>
-        <video id="video"></video>
-    </div>
     
-    <canvas id="picture" width="10000" height="10000"></canvas>
+        <div>
+            <video id="video"></video>
+        </div>
+    </div>
+    <canvas id="picture" hidden></canvas>
     <script>
         var video_width = 640;
         var video_height = 480;
         document.getElementById("video-width").value = video_width;
         document.getElementById("video-height").value = video_height;
-        
+
         const video = document.getElementById("video");
         navigator.mediaDevices.getUserMedia({
             video: {
@@ -131,10 +132,18 @@
                 }
             ).catch(
                 console.log("Failed to load the device list")
-            )
+            ).finally(()=>{
+            canvas = document.getElementById("picture");
+            canvas.width = video_width;
+            canvas.height = video_height;
+            })
         )
 
-        document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
+        document.getElementById("capture_button").addEventListener("click", () => {
+            var video_height = document.getElementById("video-height").value;
+            var video_width = document.getElementById("video-width").value;
+            captureImage(video, video_width, video_height);
+        })
         document.getElementById("select-camera").addEventListener("change", function(){
             playVideo();
         });
