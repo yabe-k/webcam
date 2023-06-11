@@ -105,8 +105,8 @@
                     devices.forEach(function(device) {
                         console.log(device.kind, device.label);
                         var option = document.createElement("option");
-                        option.text = name;
-                        option.value = id;
+                        option.text = device.label;
+                        option.value = device.deviceId;
                         select.appendChild(option);
                     });
                 }
