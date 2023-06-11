@@ -97,7 +97,18 @@
             video.play()
         }).catch(e => {
           console.log(e)
-        })
+        }).finally(
+            navigator.mediaDevices.enumerateDevices()
+            .then(
+                function(devices){
+                    devices.forEach(function(device) {
+                        console.log(device.kind, device.label)
+                    });
+                }
+            ).catch(
+                console.log("Failed to load the device list")
+            )
+        )
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
         //*/
         ///*
