@@ -103,7 +103,37 @@
         var video_height = 480;
         document.getElementById("video-width").value = video_width;
         document.getElementById("video-height").value = video_height;
-        playVideo();
+        
+        const video = document.getElementById("video");
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                width: video_width,
+                height: video_height,
+            },
+            audio: false,
+        }).then(stream => {
+            video.srcObject = stream;
+            video.play()
+        }).catch(e => {
+          console.log(e)
+        }).finally(
+            navigator.mediaDevices.enumerateDevices()
+            .then(
+                function(devices){
+                    var select = document.getElementById("select-camera");
+                    devices.forEach(function(device) {
+                        //console.log(device.kind, device.label);
+                        var option = document.createElement("option");
+                        option.text = device.label;
+                        option.value = device.deviceId;
+                        select.appendChild(option);
+                    });
+                }
+            ).catch(
+                console.log("Failed to load the device list")
+            )
+        )
+
         document.getElementById("capture_button").addEventListener("click", () => {captureImage(video)})
         document.getElementById("select-camera").addEventListener("change", function(){
             playVideo();

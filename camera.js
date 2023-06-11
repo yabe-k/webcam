@@ -32,6 +32,7 @@ function playVideo(){
     }).catch(e => {
         console.log(e)
     }).finally(() => {
+        
         var canvas = document.getElementById("picture")
         var w = video.clientWidth;
         var h = video.clientHeight;
