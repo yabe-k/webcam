@@ -7,11 +7,16 @@ function captureImage(video, w, h){
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
+    var device_name = document.getElementById("camera-name").value;
+    if (device_name == ""){
+        device_name = document.getElementById("select-camera").value.slice(-16);
+    }
+
     canvas.toBlob( blob =>{
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         console.log(getTime() + ".png");
-        a.download = getTime() + ".png";
+        a.download = device_name + "_" + getTime() + ".png";
         a.click();
 
         URL.revokeObjectURL(a.href);
@@ -32,7 +37,7 @@ function playVideo(){
         track.stop();
     });
     video.srcObject = null;
-    
+
     var selectedId = document.getElementById("select-camera").value;
     var video_height = document.getElementById("video-height").value;
     var video_width = document.getElementById("video-width").value;
