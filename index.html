@@ -101,9 +101,13 @@
             navigator.mediaDevices.enumerateDevices()
             .then(
                 function(devices){
+                    var select = document.getElementById("select-camera");
                     devices.forEach(function(device) {
                         console.log(device.kind, device.label);
-                        addOption(device.label, device.deviceId);
+                        var option = document.createElement("option");
+                        option.text = name;
+                        option.value = id;
+                        select.appendChild(option);
                     });
                 }
             ).catch(
