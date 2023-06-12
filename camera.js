@@ -3,7 +3,6 @@ function captureImage(video, w, h){
     const soundFile = "./sound/sound2.mp3";
     const audio = new Audio(soundFile);
     audio.play();
-    const fileName = "capture_" + getTime() + ".png";
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
@@ -12,11 +11,13 @@ function captureImage(video, w, h){
         device_name = document.getElementById("select-camera").value.slice(-16);
     }
 
+    filename = device_name + "_" + getTime() + ".png";
+
     canvas.toBlob( blob =>{
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        console.log(getTime() + ".png");
-        a.download = device_name + "_" + getTime() + ".png";
+        console.log(filename);
+        a.download = filename;
         a.click();
 
         URL.revokeObjectURL(a.href);
@@ -66,4 +67,44 @@ function inputVal(w, h) {
     document.getElementById("video-height").value = h;
     document.getElementById("video-width").value = w;
     playVideo();
+}
+
+function blink(id) {
+    document.getElementById(id).classList.toggle("emphasis");
+}
+
+function timelupse(){
+    var interval = document.getElementById("timelupse-minutes").value;
+    if (interval == ""){
+        alert("Set the interval time!");
+        return;
+    }
+    document.getElementById("btn-timelupse").innerText = "Stop";
+    document.getElementById("btn-timelupse").setAttribute('onclick',"stopTimelupse()");
+    interval_blink = setInterval(function(){
+        blink("timelupse");
+    }, 700);
+    
+    document.getElementById("capture_button").click();
+
+    var now = new Date();
+    timelupse_started = now.getTime();
+    interval_timelupse = setInterval(function(){
+        var now = new Date();
+        var now_unix = now.getTime();
+        var max_time = Number(document.getElementById("timelupse-number").value);
+        console.log((now_unix - timelupse_started) / 1000 / 60 / 60, max_time);
+        if(max_time > 0 && (now_unix - timelupse_started) / 1000 / 60 / 60 > max_time){
+            document.getElementById("btn-timelupse").click();
+        }
+        document.getElementById("capture_button").click();
+    }, interval * 60 * 1000)
+}
+
+function stopTimelupse(){
+    clearTimeout(interval_blink);
+    clearInterval(interval_timelupse);
+    document.getElementById("btn-timelupse").innerText = "Start";
+    document.getElementById("btn-timelupse").setAttribute('onclick',"timelupse()");
+    document.getElementById("timelupse").classList.remove("emphasis");
 }

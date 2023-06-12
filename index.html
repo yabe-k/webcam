@@ -31,32 +31,32 @@
         Name of this camera: <input id="camera-name" type="text" style="width: 200px;">
         <div class="table_wraper"><table class="gray_bg control_table"><tbody>
             <tr>
-                <th>Take a single shot</th>
+                <th id="single-shot">Take a single shot</th>
                 <td></td>
                 <td></td>
                 <td><button id="capture_button">snap</button></td>
             </tr>
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
             <tr>
-                <th rowspan="2">Timelupse capturing</th>
+                <th id="timelupse" rowspan="2">Timelupse capturing</th>
                 <td>With the interval of: </thead></td>
                 <td>
                     <input id="timelupse-minutes" type="tel"> minutes
                 </td>
                 <td rowspan="2">
-                    <button>start</button>
+                    <button id="btn-timelupse" onclick="timelupse()">start</button>
                 </td>
             </tr>
             <tr>
                 <td>At maximum: </td>
                 <td>
-                    <input id="timelupse-number" type="tel"> pictures
+                    <input id="timelupse-number" type="tel"> hours
                 </td>
             </tr>
             <!--
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
             <tr>
-                <th rowspan="3">Intermittent recording</th>
+                <th id="intermittent" rowspan="3">Intermittent recording</th>
                 <td>With the interval of: </thead></td>
                 <td>
                     <input type="tel"> minutes

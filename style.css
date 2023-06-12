@@ -32,3 +32,6 @@ body{
 #select-camera{
     width: 100%;
 }
+.emphasis{
+    background-color: rgb(96, 220, 236);
+}
