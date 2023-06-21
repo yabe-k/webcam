@@ -53,30 +53,41 @@
                     <input id="timelupse-number" type="tel"> hours
                 </td>
             </tr>
-            <!--
+
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            
+            <tr>
+                <th id="single-video">Record a single video</th>
+                <td>Max duration:</td>
+                <td><input id="single-video-minutes" type="tel"> minutes</td>
+                <td><button id="btn-singleVideo" onclick="startSingleVideo()">start</button></td>
+            </tr>
+
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+
             <tr>
                 <th id="intermittent" rowspan="3">Intermittent recording</th>
                 <td>With the interval of: </thead></td>
                 <td>
-                    <input type="tel"> minutes
+                    <input id="intermittent-interval" type="tel"> minutes
                 </td>
                 <td rowspan="3">
-                    <button>start</button>
+                    <button id="btn-intermittent" onclick="startIntermittentVideo()">start</button>
                 </td>
             </tr>
             <tr>
                 <td>Duration of 1 movie: </td>
                 <td>
-                    <input type="tel"> minutes
+                    <input id="intermittent-duration" type="tel"> minutes
                 </td>
             </tr>
             <tr>
-                <td>At maximum: </td>
+                <td>Stop in: </td>
                 <td>
-                    <input type="tel"> movies
+                    <input id="intermittent-max-hour" type="tel"> hours
                 </td>
             </tr>
+            <!--
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
             <tr>
                 <th rowspan="2">Continuous recording</th>
@@ -109,38 +120,10 @@
         document.getElementById("video-height").value = video_height;
 
         const video = document.getElementById("video");
-        navigator.mediaDevices.getUserMedia({
-            video: {
-                width: video_width,
-                height: video_height,
-            },
-            audio: false,
-        }).then(stream => {
-            video.srcObject = stream;
-            video.play()
-        }).catch(e => {
-          console.log(e)
-        }).finally(
-            navigator.mediaDevices.enumerateDevices()
-            .then(
-                function(devices){
-                    var select = document.getElementById("select-camera");
-                    devices.forEach(function(device) {
-                        //console.log(device.kind, device.label);
-                        var option = document.createElement("option");
-                        option.text = device.label;
-                        option.value = device.deviceId;
-                        select.appendChild(option);
-                    });
-                }
-            ).catch(
-                console.log("Failed to load the device list")
-            ).finally(()=>{
-            canvas = document.getElementById("picture");
-            canvas.width = video_width;
-            canvas.height = video_height;
-            })
-        )
+        var video_stream;
+        var recordedBlobs = [];
+        var isRecording = false;
+        playVideo_and_getCamera();
 
         document.getElementById("capture_button").addEventListener("click", () => {
             var video_height = document.getElementById("video-height").value;
