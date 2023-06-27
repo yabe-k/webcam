@@ -247,7 +247,9 @@ function startIntermittentVideo(){
     document.getElementById("btn-intermittent").innerText = "stop";
     isRecording = true;
     interval_intermittent = setInterval(function(){recordVideo(duration * 1000 * 60);}, interval * 1000 * 60);
-    timeout_stop_interval = setTimeout(function(){stopIntermittentVideo();}, max_hour * 1000 * 60 * 60 + 10);
+    if(max_hour > 0){
+        timeout_stop_interval = setTimeout(function(){stopIntermittentVideo();}, max_hour * 1000 * 60 * 60 + 10);
+    }
 }
 
 function stopIntermittentVideo(){
