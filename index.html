@@ -64,16 +64,23 @@
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
             
             <tr>
-                <th id="single-video">Record a single video</th>
+                <th id="single-video" rowspan="2">Continuous video recording</th>
                 <td>Max duration:</td>
                 <td><input id="single-video-minutes" type="tel"> minutes</td>
-                <td><button id="btn-singleVideo" onclick="startSingleVideo()">start</button></td>
+                <td rowspan="2"><button id="btn-singleVideo" onclick="singleVideo_clicked()">start</button></td>
             </tr>
+            <tr>
+                <td>Repeat recording for</td>
+                <td><input id="single-video-repeats" type="tel"> times</td>
+            </tr>
+            <tr><td colspan="4" style="padding-left: 20px; padding-right: 10px;">
+                <ul style="margin: 0px; font-size: 0.8rem;"><li>Setting a long duration (depending on your PC's RAM size) may cause the browser to crash. To record for a longer duration, consider splitting the video into multiple files.</li></ul>
+            </td></tr>
 
             <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
 
             <tr>
-                <th id="intermittent" rowspan="3">Intermittent recording</th>
+                <th id="intermittent" rowspan="3">Intermittent video recording</th>
                 <td>With the interval of: </thead></td>
                 <td>
                     <input id="intermittent-interval" type="tel"> minutes

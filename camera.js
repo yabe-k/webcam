@@ -187,11 +187,23 @@ function stopTimelupse(){
     document.getElementById("timelupse").classList.remove("emphasis");
 }
 
-function startSingleVideo(){
+function singleVideo_clicked(){
+    count = document.getElementById("single-video-repeats").value;
+    if (count == ""){
+        count = 1;
+    }else{
+        count = Number(count);
+    }
+    console.log("指定された回数:" + String(count));
+    startSingleVideo(count = count);
+}
+
+function startSingleVideo(count=1){
     if (isRecording){
         alert("Another recording program is already running");
         return;
     }
+    console.log("最後から" + String(count) + "回目の録画")
     document.getElementById("single-video").classList.add("recording");
     document.getElementById("btn-singleVideo").setAttribute('onclick',"stopSingleVideo()");
     document.getElementById("btn-singleVideo").innerText = "stop";
@@ -206,7 +218,15 @@ function startSingleVideo(){
     var duration = Number(document.getElementById("single-video-minutes").value);
     if (duration > 0){
         startRecording();
-        setTimeout(function(){stopSingleVideo(filename);}, duration * 1000 * 60);
+        setTimeout(
+            function(){
+                stopSingleVideo(filename);
+                if(count - 1 > 0){
+                    startSingleVideo(count=count - 1);
+                }
+            },
+            duration * 1000 * 60
+        );
     }else{
         startRecording();
     }
@@ -214,7 +234,7 @@ function startSingleVideo(){
 
 function stopSingleVideo(filename){
     document.getElementById("single-video").classList.remove("recording");
-    document.getElementById("btn-singleVideo").setAttribute('onclick',"startSingleVideo()");
+    document.getElementById("btn-singleVideo").setAttribute('onclick',"singleVideo_clicked()");
     document.getElementById("btn-singleVideo").innerText = "start";
     isRecording = false;
     stopRecording(filename);
