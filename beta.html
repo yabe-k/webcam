@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カメラ撮影アプリ</title>
+  <style>
+    /* 全体設定 */
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #333;
+      color: #f7f7f7;
+      overflow: hidden;
+    }
+    #container {
+      display: flex;
+      height: 100vh;
+      position: relative;
+    }
+    /* サイドバー（操作用パネル） */
+    #sidebar {
+      width: 300px;
+      background: #333;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      transition: width 0.3s ease, padding 0.3s ease;
+    }
+    /* collapsed 状態では幅と内側余白を 0 にする */
+    #sidebar.collapsed {
+      width: 0;
+      padding: 0;
+    }
+    #sidebar fieldset {
+      border: 1px solid #555;
+      padding: 0.4rem;
+      margin: 0.5rem;
+      background: #444;
+    }
+    #sidebar fieldset legend {
+      font-weight: bold;
+      padding: 0 0.1rem;
+    }
+    .form-row {
+      margin: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .form-row label {
+      margin-right: 0.5rem;
+    }
+    .form-row input,
+    .form-row select {
+      margin-right: 1rem;
+      padding: 0.2rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      background-color: #dadada;
+    }
+    .form-row button {
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      border-color: #888;
+      border-radius: 20px;
+      border-style: solid;
+      background-color: #666;
+      color: #f7f7f7;
+    }
+    .field-camera-settings {
+      background-color: #5c5c5c !important;
+    }
+    /* メイン（映像表示部） */
+    #main {
+      flex: 1;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    /* サイドバー切替ボタン（常に表示、#sidebar とは別要素） */
+    #toggleSidebar {
+      position: absolute;
+      top: 10px;
+      left: 300px; /* サイドバー展開時の位置 */
+      z-index: 100;
+      padding: 5px;
+      background: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: left 0.3s ease;
+    }
+    /* サイドバーが collapsed 状態なら toggle ボタンは左端に */
+    #sidebar.collapsed ~ #toggleSidebar {
+      left: 0;
+    }
+    /* 点滅アニメーション */
+    @keyframes blinkRed {
+      0% { color: red; }
+      50% { color: #fff; }
+      100% { color: red; }
+    }
+    @keyframes blinkGreen {
+      0% { background-color: green; }
+      50% { background-color: transparent; }
+      100% { background-color: green; }
+    }
+    .blinking-red {
+      animation: blinkRed 1s infinite;
+    }
+    .blinking-green {
+      animation: blinkGreen 1s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- 操作パネル -->
+    <div id="sidebar">
+      <section id="camera-settings">
+        <fieldset class="field-camera-settings">
+          <legend>カメラ設定</legend>
+          <div class="form-row">
+            <label for="cameraSelect">カメラ選択:</label>
+            <select id="cameraSelect"></select>
+          </div>
+          <div class="form-row">
+            <label for="cameraName">カメラ名:</label>
+            <input id="cameraName" type="text" placeholder="任意のカメラ名">
+          </div>
+        </fieldset>
+      </section>
+      <section id="controls">
+        <!-- モード1: 静止画撮影 -->
+        <fieldset>
+          <legend id="mode1Title">静止画撮影</legend>
+          <div class="form-row">
+            <button id="captureBtn">静止画撮影</button>
+          </div>
+        </fieldset>
+        <!-- モード2: タイムラプス撮影 -->
+        <fieldset>
+          <legend id="mode2Title">タイムラプス撮影</legend>
+          <div class="form-row">
+            <label for="timelapseInterval">撮影間隔(秒):</label>
+            <input id="timelapseInterval" type="tel" placeholder="例: 5">
+          </div>
+          <div class="form-row">
+            <label for="timelapseMaxTime">最大時間(時間):</label>
+            <input id="timelapseMaxTime" type="tel" placeholder="任意">
+          </div>
+          <div class="form-row">
+            <button id="timelapseBtn">タイムラプス撮影</button>
+          </div>
+        </fieldset>
+        <!-- モード3: 連続録画 -->
+        <fieldset>
+          <legend id="mode3Title">連続録画</legend>
+          <div class="form-row">
+            <label for="continuousDuration">動画の長さ(分):</label>
+            <input id="continuousDuration" type="tel" placeholder="例: 1">
+          </div>
+          <div class="form-row">
+            <label for="continuousRepeat">繰り返し回数(任意):</label>
+            <input id="continuousRepeat" type="tel" placeholder="例: 3">
+          </div>
+          <div class="form-row">
+            <button id="continuousBtn">連続録画</button>
+          </div>
+        </fieldset>
+        <!-- モード4: 断続録画 -->
+        <fieldset>
+          <legend id="mode4Title">断続録画</legend>
+          <div class="form-row">
+            <label for="intermittentDuration">動画の長さ(分):</label>
+            <input id="intermittentDuration" type="tel" placeholder="例: 1">
+          </div>
+          <div class="form-row">
+            <label for="intermittentInterval">撮影間隔(分):</label>
+            <input id="intermittentInterval" type="tel" placeholder="例: 2">
+          </div>
+          <div class="form-row">
+            <label for="intermittentMaxTime">最大時間(時間):</label>
+            <input id="intermittentMaxTime" type="tel" placeholder="任意">
+          </div>
+          <div class="form-row">
+            <button id="intermittentBtn">断続録画</button>
+          </div>
+        </fieldset>
+      </section>
+    </div>
+    <!-- サイドバー開閉用ボタン（#sidebar とは別要素） -->
+    <button id="toggleSidebar">&lt;&lt;隠す</button>
+    <!-- 映像表示部 -->
+    <div id="main">
+      <video id="video" autoplay playsinline></video>
+    </div>
+  </div>
+  
+  <!-- 静止画撮影用キャンバス（非表示） -->
+  <canvas id="picture" hidden></canvas>
+  
+  <!-- サイドバー開閉スクリプト -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const sidebar = document.getElementById("sidebar");
+      const toggleButton = document.getElementById("toggleSidebar");
+      toggleButton.addEventListener("click", function() {
+        if (sidebar.classList.contains("collapsed")) {
+          sidebar.classList.remove("collapsed");
+          toggleButton.textContent = "<<隠す";
+        } else {
+          sidebar.classList.add("collapsed");
+          toggleButton.textContent = ">>表示";
+        }
+      });
+    });
+  </script>
+  
+  <!-- カメラ・撮影ロジックスクリプト -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const videoElement = document.getElementById('video');
+      const cameraSelect = document.getElementById('cameraSelect');
+      const cameraNameInput = document.getElementById('cameraName');
+      
+      const captureBtn = document.getElementById('captureBtn');
+      const timelapseBtn = document.getElementById('timelapseBtn');
+      const continuousBtn = document.getElementById('continuousBtn');
+      const intermittentBtn = document.getElementById('intermittentBtn');
+      
+      const timelapseIntervalInput = document.getElementById('timelapseInterval');
+      const timelapseMaxTimeInput = document.getElementById('timelapseMaxTime');
+      
+      const continuousDurationInput = document.getElementById('continuousDuration');
+      const continuousRepeatInput = document.getElementById('continuousRepeat');
+      
+      const intermittentDurationInput = document.getElementById('intermittentDuration');
+      const intermittentIntervalInput = document.getElementById('intermittentInterval');
+      const intermittentMaxTimeInput = document.getElementById('intermittentMaxTime');
+      
+      const mode1Title = document.getElementById('mode1Title');
+      const mode2Title = document.getElementById('mode2Title');
+      const mode3Title = document.getElementById('mode3Title');
+      const mode4Title = document.getElementById('mode4Title');
+      
+      let currentStream = null;
+      
+      // タイムラプス用変数
+      let timelapseActive = false;
+      let timelapseIntervalId = null;
+      let timelapseMaxTimeoutId = null;
+      
+      // 連続録画用変数
+      let continuousRecordingActive = false;
+      let continuousRecorder = null;
+      let continuousRecordingTimer = null;
+      let continuousRepeatCount = 0;
+      
+      // 断続録画用変数
+      let intermittentRecordingActive = false;
+      let intermittentRecorder = null;
+      let intermittentRecordingTimer = null;
+      let intermittentMaxTimeoutId = null;
+      
+      // 日付を "YYYY-MM-DD_hh:mm:ss" 形式に整形
+      function getFormattedDate() {
+        const now = new Date();
+        const pad = num => String(num).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+      }
+      
+      // カメラ名が未入力なら、現在選択中の deviceId を返す
+      function getCameraName() {
+        const name = cameraNameInput.value.trim();
+        return name ? name : cameraSelect.value;
+      }
+      
+      // Blob からダウンロード用リンクを生成してクリックする
+      function downloadBlob(blob, extension) {
+        const a = document.createElement('a');
+        const filename = `${getCameraName()}_${getFormattedDate()}.${extension}`;
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      }
+      
+      // 指定した deviceId でカメラを起動する（最大画質を要求）
+      async function startCamera(deviceId) {
+        if (currentStream) {
+          currentStream.getTracks().forEach(track => track.stop());
+        }
+        try {
+          const constraints = deviceId 
+            ? { video: { 
+                  deviceId: { exact: deviceId },
+                  width: { ideal: 4096 },
+                  height: { ideal: 2160 }
+                } 
+              }
+            : { video: { 
+                  width: { ideal: 4096 },
+                  height: { ideal: 2160 }
+                } 
+              };
+          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+          videoElement.srcObject = currentStream;
+        } catch (e) {
+          console.error('カメラアクセスエラー:', e);
+        }
+      }
+      
+      // 利用可能なカメラを列挙し、リストボックスに反映する
+      async function getCameras() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        cameraSelect.innerHTML = '';
+        const maxChars = 24; // 最大文字数
+        videoDevices.forEach((device) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          // 機種名（device.label）のみ表示。空の場合は「機種名なし」
+          let label = device.label || '機種名なし';
+          if(label.length > maxChars){
+            label = label.substring(0, maxChars) + '…';
+          }
+          option.text = label;
+          cameraSelect.appendChild(option);
+        });
+        if (videoDevices.length > 0) {
+          startCamera(videoDevices[0].deviceId);
+        }
+      }
+      
+      cameraSelect.addEventListener('change', () => {
+        startCamera(cameraSelect.value);
+      });
+      
+      // 【モード1】静止画撮影
+      captureBtn.addEventListener('click', () => {
+        if (!currentStream) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          downloadBlob(blob, 'png');
+        }, 'image/png');
+      });
+      
+      // 【モード2】タイムラプス撮影
+      timelapseBtn.addEventListener('click', () => {
+        if (!timelapseActive) {
+          const intervalSec = parseFloat(timelapseIntervalInput.value);
+          if (isNaN(intervalSec) || intervalSec <= 0) {
+            alert('撮影間隔(秒)を正しく入力せよ');
+            return;
+          }
+          timelapseActive = true;
+          timelapseBtn.textContent = 'タイムラプス停止';
+          mode2Title.classList.add('blinking-red');  // 実行中は赤色点滅
+          const maxHours = parseFloat(timelapseMaxTimeInput.value);
+          if (!isNaN(maxHours) && maxHours > 0) {
+            timelapseMaxTimeoutId = setTimeout(() => {
+              stopTimelapse();
+            }, maxHours * 3600 * 1000);
+          }
+          captureImage();
+          timelapseIntervalId = setInterval(captureImage, intervalSec * 1000);
+        } else {
+          stopTimelapse();
+        }
+      });
+      
+      function captureImage() {
+        if (!currentStream) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          downloadBlob(blob, 'png');
+        }, 'image/png');
+      }
+      
+      function stopTimelapse() {
+        timelapseActive = false;
+        timelapseBtn.textContent = 'タイムラプス撮影';
+        mode2Title.classList.remove('blinking-red');  // 点滅解除
+        if (timelapseIntervalId) {
+          clearInterval(timelapseIntervalId);
+          timelapseIntervalId = null;
+        }
+        if (timelapseMaxTimeoutId) {
+          clearTimeout(timelapseMaxTimeoutId);
+          timelapseMaxTimeoutId = null;
+        }
+      }
+      
+      // 【モード3】連続録画
+      continuousBtn.addEventListener('click', () => {
+        if (!continuousRecordingActive) {
+          const durationMin = parseFloat(continuousDurationInput.value);
+          if (isNaN(durationMin) || durationMin <= 0) {
+            alert('動画の長さ(分)を正しく入力せよ');
+            return;
+          }
+          continuousRepeatCount = parseInt(continuousRepeatInput.value) || 1;
+          continuousRecordingActive = true;
+          continuousBtn.textContent = '連続録画停止';
+          mode3Title.classList.add('blinking-red'); // 録画中は赤点滅
+          startContinuousRecording(durationMin * 60 * 1000);
+        } else {
+          stopContinuousRecording();
+        }
+      });
+      
+      function startContinuousRecording(durationMs) {
+        if (!currentStream) return;
+        let chunks = [];
+        try {
+          continuousRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
+        } catch (e) {
+          console.error('MediaRecorder未対応:', e);
+          alert('MediaRecorderがサポートされていない');
+          stopContinuousRecording();
+          return;
+        }
+        continuousRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+        continuousRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          downloadBlob(blob, 'webm');
+          continuousRepeatCount--;
+          if (continuousRepeatCount > 0 && continuousRecordingActive) {
+            startContinuousRecording(durationMs);
+          } else {
+            stopContinuousRecording();
+          }
+        };
+        continuousRecorder.start();
+        continuousRecordingTimer = setTimeout(() => {
+          if (continuousRecorder && continuousRecorder.state === 'recording') {
+            continuousRecorder.stop();
+          }
+        }, durationMs);
+      }
+      
+      function stopContinuousRecording() {
+        continuousRecordingActive = false;
+        continuousBtn.textContent = '連続録画';
+        mode3Title.classList.remove('blinking-red');
+        if (continuousRecordingTimer) {
+          clearTimeout(continuousRecordingTimer);
+          continuousRecordingTimer = null;
+        }
+        if (continuousRecorder && continuousRecorder.state === 'recording') {
+          continuousRecorder.stop();
+        }
+      }
+      
+      // 【モード4】断続録画
+      intermittentBtn.addEventListener('click', () => {
+        if (!intermittentRecordingActive) {
+          const durationMin = parseFloat(intermittentDurationInput.value);
+          const intervalMin = parseFloat(intermittentIntervalInput.value);
+          if (isNaN(durationMin) || durationMin <= 0 || isNaN(intervalMin) || intervalMin <= 0) {
+            alert('動画の長さ(分)と撮影間隔(分)を正しく入力せよ');
+            return;
+          }
+          if (intervalMin <= durationMin) {
+            alert('撮影間隔は動画の長さより大きくなければならない');
+            return;
+          }
+          intermittentRecordingActive = true;
+          intermittentBtn.textContent = '断続録画停止';
+          mode4Title.classList.remove('blinking-red', 'blinking-green');
+          mode4Title.classList.add('blinking-red'); // 初回は録画中（赤点滅）
+          const maxHours = parseFloat(intermittentMaxTimeInput.value);
+          if (!isNaN(maxHours) && maxHours > 0) {
+            intermittentMaxTimeoutId = setTimeout(() => {
+              stopIntermittentRecording();
+            }, maxHours * 3600 * 1000);
+          }
+          startIntermittentRecording(durationMin * 60 * 1000);
+          intermittentRecordingTimer = setInterval(() => {
+            startIntermittentRecording(durationMin * 60 * 1000);
+          }, intervalMin * 60 * 1000);
+        } else {
+          stopIntermittentRecording();
+        }
+      });
+      
+      function startIntermittentRecording(durationMs) {
+        mode4Title.classList.remove('blinking-green');
+        mode4Title.classList.add('blinking-red'); // 録画開始 → 赤点滅
+        if (!currentStream) return;
+        let chunks = [];
+        try {
+          intermittentRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
+        } catch (e) {
+          console.error('MediaRecorder未対応:', e);
+          alert('MediaRecorderがサポートされていない');
+          stopIntermittentRecording();
+          return;
+        }
+        intermittentRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+        intermittentRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          downloadBlob(blob, 'webm');
+          intermittentRecorder = null;
+        };
+        intermittentRecorder.start();
+        setTimeout(() => {
+          if (intermittentRecorder && intermittentRecorder.state === 'recording') {
+            intermittentRecorder.stop();
+          }
+          mode4Title.classList.remove('blinking-red');
+          mode4Title.classList.add('blinking-green'); // 録画終了後、待機中
+        }, durationMs);
+      }
+      
+      function stopIntermittentRecording() {
+        intermittentRecordingActive = false;
+        intermittentBtn.textContent = '断続録画';
+        mode4Title.classList.remove('blinking-red', 'blinking-green');
+        if (intermittentRecordingTimer) {
+          clearInterval(intermittentRecordingTimer);
+          intermittentRecordingTimer = null;
+        }
+        if (intermittentMaxTimeoutId) {
+          clearTimeout(intermittentMaxTimeoutId);
+          intermittentMaxTimeoutId = null;
+        }
+        if (intermittentRecorder && intermittentRecorder.state === 'recording') {
+          intermittentRecorder.stop();
+          intermittentRecorder = null;
+        }
+      }
+      
+      // 初期化：カメラデバイスを取得
+      getCameras();
+    });
+  </script>
+</body>
+</html>
