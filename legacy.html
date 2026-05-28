@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="./camera.js"></script>
+  <title>Webcam controller</title>
+</head>
+<body>
+    <div id="wrapper">
+        <a href="./beta.html">A new version (beta)</a> is available
+        <select id="select-camera" class="table_wraper">
+            <option>(Select a camera)</option>
+        </select>
+        <div>
+            Width:<input id="video-width" type="tel"> px  Height:<input id="video-height" type="tel"> px
+        </div>
+        <div>
+            <table style="width: 100%; text-decoration: underline;"><tbody>
+                <tr>
+                    <th style="text-decoration: none !important;">4:3</th>
+                    <td onclick="inputVal(640, 480)">640×480</td>
+                    <td onclick="inputVal(1280, 960)">1280×960</td>
+                    <td onclick="inputVal(1600, 1200)">1600×1200</td>
+                    <td onclick="inputVal(1920, 1440)">1920×1440</td>
+                    <td onclick="inputVal(2592, 1944)">2592×1944</td>
+                </tr>
+                <tr style="text-decoration: none !important;">
+                    <th>16:9</th>
+                    <td></td>
+                    <td onclick="inputVal(1280, 720)">1280×720</td>
+                    <td onclick="inputVal(1600, 900)">1600×900</td>
+                    <td onclick="inputVal(1920, 1080)">1920×1080</td>
+                    <td onclick="inputVal(2592, 1458)">2592×1458</td>
+                </tr>
+            </tbody></table>
+        </div>
+        Name of this camera: <input id="camera-name" type="text" style="width: 200px;">
+        <div class="table_wraper"><table class="gray_bg control_table"><tbody>
+            <tr>
+                <th id="single-shot">Take a single shot</th>
+                <td></td>
+                <td></td>
+                <td><button id="capture_button">snap</button></td>
+            </tr>
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            <tr>
+                <th id="timelupse" rowspan="2">Timelupse capturing</th>
+                <td>With the interval of: </thead></td>
+                <td>
+                    <input id="timelupse-minutes" type="tel"> minutes
+                </td>
+                <td rowspan="2">
+                    <button id="btn-timelupse" onclick="timelupse()">start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>At maximum: </td>
+                <td>
+                    <input id="timelupse-number" type="tel"> hours
+                </td>
+            </tr>
+
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            
+            <tr>
+                <th id="single-video" rowspan="2">Continuous video recording</th>
+                <td>Max duration:</td>
+                <td><input id="single-video-minutes" type="tel"> minutes</td>
+                <td rowspan="2"><button id="btn-singleVideo" onclick="singleVideo_clicked()">start</button></td>
+            </tr>
+            <tr>
+                <td>Repeat recording for</td>
+                <td><input id="single-video-repeats" type="tel"> times</td>
+            </tr>
+            <tr><td colspan="4" style="padding-left: 20px; padding-right: 10px;">
+                <ul style="margin: 0px; font-size: 0.8rem;"><li>Setting a long duration (depending on your PC's RAM size) may cause the browser to crash. To record for a longer duration, consider splitting the video into multiple files.</li></ul>
+            </td></tr>
+
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+
+            <tr>
+                <th id="intermittent" rowspan="3">Intermittent video recording</th>
+                <td>With the interval of: </thead></td>
+                <td>
+                    <input id="intermittent-interval" type="tel"> minutes
+                </td>
+                <td rowspan="3">
+                    <button id="btn-intermittent" onclick="startIntermittentVideo()">start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>Duration of 1 movie: </td>
+                <td>
+                    <input id="intermittent-duration" type="tel"> minutes
+                </td>
+            </tr>
+            <tr>
+                <td>Stop in: </td>
+                <td>
+                    <input id="intermittent-max-hour" type="tel"> hours
+                </td>
+            </tr>
+            <!--
+            <tr><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td><td class="spacer"></td></tr>
+            <tr>
+                <th rowspan="2">Continuous recording</th>
+                <td>At maximum: </thead></td>
+                <td>
+                    <input type="tel"> hours
+                </td>
+                <td rowspan="2">
+                    <button>start</button>
+                </td>
+            </tr>
+            <tr>
+                <td>Split movies every</td>
+                <td>
+                    <input type="tel"> minutes
+                </td>
+            </tr>
+        -->
+        </tbody></table></div>
+    
+        <div>
+            <video id="video"></video>
+        </div>
+        <div>Sound by <a href="https://otologic.jp">OtoLogic</a>(CC BY 4.0)</div>
+    </div>
+    <canvas id="picture" hidden></canvas>
+    <script>
+        var video_width = 640;
+        var video_height = 480;
+        document.getElementById("video-width").value = video_width;
+        document.getElementById("video-height").value = video_height;
+
+        const video = document.getElementById("video");
+        var video_stream;
+        var recordedBlobs = [];
+        var isRecording = false;
+        playVideo_and_getCamera();
+
+        document.getElementById("capture_button").addEventListener("click", () => {
+            var video_height = document.getElementById("video-height").value;
+            var video_width = document.getElementById("video-width").value;
+            captureImage(video, video_width, video_height);
+        })
+        document.getElementById("select-camera").addEventListener("change", function(){
+            playVideo();
+        });
+        document.getElementById("video-width").addEventListener("change", function(){
+            playVideo();
+        });
+        document.getElementById("video-height").addEventListener("change", function(){
+            playVideo();
+        });
+    </script>
+</body>
+</html>
