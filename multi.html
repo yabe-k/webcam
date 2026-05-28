@@ -12,7 +12,7 @@
         /* プレミアム・ダークテーマ デザインシステム */
         :root {
             --bg-base: #060913;
-            --bg-panel: rgba(13, 20, 38, 0.65);
+            --bg-panel: rgba(13, 20, 38, 0.7);
             --bg-card: rgba(22, 33, 59, 0.45);
             --bg-input: rgba(30, 48, 86, 0.4);
             --border-glow: rgba(14, 165, 233, 0.2);
@@ -31,7 +31,7 @@
             --font-main: 'Outfit', sans-serif;
             --font-mono: 'Fira Code', 'Courier New', monospace;
             
-            --sidebar-width: 410px;
+            --sidebar-width: 390px;
         }
 
         * {
@@ -58,21 +58,88 @@
             display: flex;
             width: 100%;
             height: 100%;
+            position: relative;
+            overflow: hidden;
         }
 
-        /* サイドバー (左側コントロールパネル) */
-        #sidebar {
+        /* パネル共通設定 */
+        .panel {
             width: var(--sidebar-width);
             min-width: var(--sidebar-width);
             background: var(--bg-panel);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid var(--border-base);
             display: flex;
             flex-direction: column;
             height: 100%;
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
             z-index: 10;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* 左パネル (カメラ設定) */
+        #left-panel {
+            border-right: 1px solid var(--border-base);
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.4);
+        }
+
+        #left-panel.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
+            box-shadow: none;
+        }
+
+        /* 右パネル (シーケンスプログラム) */
+        #right-panel {
+            border-left: 1px solid var(--border-base);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.4);
+        }
+
+        #right-panel.collapsed {
+            margin-right: calc(-1 * var(--sidebar-width));
+            box-shadow: none;
+        }
+
+        /* フローティングトグルボタン */
+        .panel-toggle-btn {
+            position: absolute;
+            top: 20px;
+            z-index: 99;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-base);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 0.8rem;
+        }
+
+        .panel-toggle-btn:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+            box-shadow: 0 0 15px var(--color-primary-glow);
+        }
+
+        #toggle-left-btn {
+            left: calc(var(--sidebar-width) + 15px);
+        }
+
+        #left-panel.collapsed ~ #toggle-left-btn {
+            left: 15px;
+        }
+
+        #toggle-right-btn {
+            right: calc(var(--sidebar-width) + 15px);
+        }
+
+        #right-panel.collapsed ~ #toggle-right-btn {
+            right: 15px;
         }
 
         /* ヘッダー */
@@ -82,7 +149,7 @@
         }
 
         .sidebar-header h1 {
-            font-size: 1.35rem;
+            font-size: 1.3rem;
             font-weight: 700;
             letter-spacing: 0.5px;
             background: linear-gradient(135deg, #ffffff 30%, var(--color-primary) 100%);
@@ -260,7 +327,7 @@
             border: 1px solid var(--border-base);
             border-radius: 8px;
             color: var(--text-main);
-            padding: 8px 12px;
+            padding: 6px 10px;
             font-family: var(--font-main);
             font-size: 0.85rem;
             outline: none;
@@ -425,7 +492,6 @@
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 12px;
-            margin-bottom: 20px;
         }
 
         /* ターミナル風コンソール */
@@ -436,7 +502,7 @@
             padding: 12px;
             display: flex;
             flex-direction: column;
-            height: 180px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
         }
 
         .console-header {
@@ -478,7 +544,7 @@
             color: #38bdf8;
         }
 
-        /* メイン プレビュー領域 (右側) */
+        /* メイン プレビュー領域 (中央) */
         #preview-area {
             flex: 1;
             padding: 24px;
@@ -488,6 +554,7 @@
             gap: 24px;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             align-content: start;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         /* 1台だけプレビュー中の場合は、画面いっぱいに広げる */
@@ -648,21 +715,20 @@
     <canvas id="snapshot-canvas" style="display: none;"></canvas>
 
     <div id="app-container">
-        <!-- コントロールサイドバー (左側) -->
-        <aside id="sidebar">
-            <!-- ヘッダー -->
+        
+        <!-- 左パネル: カメラ設定 -->
+        <aside id="left-panel" class="panel">
             <div class="sidebar-header">
                 <h1>
                     <!-- カメラのSVG -->
                     <svg class="icon" viewBox="0 0 24 24" style="width: 22px; height: 22px;">
                         <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h-2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
                     </svg>
-                    マルチカメラ制御システム
+                    カメラ設定
                 </h1>
-                <p>複数カメラのプレビュー同時出力とシーケンス撮影プログラム</p>
+                <p>接続デバイスのアサインとカスタム解像度の管理</p>
             </div>
 
-            <!-- スクロールコンテンツ -->
             <div class="sidebar-content">
                 <!-- 警告・お知らせ -->
                 <div class="alert-info">
@@ -681,7 +747,7 @@
                         <svg class="icon" viewBox="0 0 24 24" style="width: 12px; height: 12px;">
                             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                         </svg>
-                        カメラを追加
+                        追加
                     </button>
                 </div>
 
@@ -689,14 +755,41 @@
                 <div id="camera-cards-container">
                     <!-- カメラカードはJavaScriptで動的に追加されます -->
                 </div>
+            </div>
 
-                <!-- シーケンス制御セクション -->
-                <div class="section-title">
-                    <span>プログラム・シーケンス</span>
+            <!-- リアルタイムコンソールログ (左パネル下部固定) -->
+            <div class="console-box" style="margin: 15px; height: 200px;">
+                <div class="console-header">
+                    <span>実行ログ・モニター</span>
+                    <span style="cursor: pointer; text-decoration: underline;" onclick="clearLogs()">クリア</span>
                 </div>
+                <div class="console-logs" id="console-logs-container">
+                    <div class="log-entry"><span class="log-time">[00:00:00]</span> システムが起動しました。</div>
+                </div>
+            </div>
+        </aside>
 
+        <!-- 映像プレビュー領域 (中央) -->
+        <main id="preview-area">
+            <!-- プレビューカードが動的に追加されます -->
+        </main>
+
+        <!-- 右パネル: プログラムシーケンス -->
+        <aside id="right-panel" class="panel">
+            <div class="sidebar-header">
+                <h1>
+                    <!-- シーケンスリストのSVG -->
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 22px; height: 22px;">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/>
+                    </svg>
+                    撮影プログラム
+                </h1>
+                <p>ステップ順実行とループによる自動キャプチャ制御</p>
+            </div>
+
+            <div class="sidebar-content">
                 <!-- ステップ追加用ツールバー -->
-                <div class="card" style="padding: 12px; margin-bottom: 12px;">
+                <div class="card" style="padding: 12px; margin-bottom: 15px;">
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">撮影コマンドを追加:</div>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
                         <button class="btn btn-sm" onclick="addStep('capture')" title="静止画を撮影し保存するステップを追加">
@@ -727,44 +820,39 @@
                     </div>
                 </div>
 
+                <!-- シーケンス制御セクション -->
+                <div class="section-title">
+                    <span>ステップシーケンス</span>
+                </div>
+
                 <!-- シーケンスステップのリスト -->
                 <div id="step-list-container" class="step-list">
                     <!-- ステップカードがJSで追加されます -->
                 </div>
+            </div>
 
-                <!-- プログラム全体ループとトリガー -->
+            <!-- プログラム全体ループとトリガー (右パネル下部固定) -->
+            <div style="padding: 15px; border-top: 1px solid var(--border-base); background: rgba(13, 20, 38, 0.45);">
                 <div class="program-trigger-box">
-                    <button class="btn btn-success" id="btn-run-program" onclick="toggleProgram()">
+                    <button class="btn btn-success" id="btn-run-program" onclick="toggleProgram()" style="width: 100%;">
                         <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
                             <path d="M8 5v14l11-7z"/>
                         </svg>
                         プログラム実行
                     </button>
-                    <button class="btn btn-danger" id="btn-stop-program" onclick="stopProgram()" disabled>
+                    <button class="btn btn-danger" id="btn-stop-program" onclick="stopProgram()" disabled style="width: 100%;">
                         <svg class="icon" viewBox="0 0 24 24" style="width: 14px; height: 14px;">
                             <path d="M6 19h12V5H6v14z"/>
                         </svg>
                         停止
                     </button>
                 </div>
-
-                <!-- リアルタイムコンソール -->
-                <div class="console-box">
-                    <div class="console-header">
-                        <span>実行ログ・モニター</span>
-                        <span style="cursor: pointer; text-decoration: underline;" onclick="clearLogs()">クリア</span>
-                    </div>
-                    <div class="console-logs" id="console-logs-container">
-                        <div class="log-entry"><span class="log-time">[00:00:00]</span> システムが起動しました。</div>
-                    </div>
-                </div>
             </div>
         </aside>
 
-        <!-- 映像プレビュー領域 (右側) -->
-        <main id="preview-area">
-            <!-- プレビューカードが動的に追加されます -->
-        </main>
+        <!-- フローティング パネル開閉トグルボタン -->
+        <button class="panel-toggle-btn" id="toggle-left-btn" onclick="toggleLeftPanel()" title="設定パネルを非表示">◀</button>
+        <button class="panel-toggle-btn" id="toggle-right-btn" onclick="toggleRightPanel()" title="プログラムパネルを非表示">▶</button>
     </div>
 
     <!-- JavaScriptロジック -->
@@ -790,6 +878,33 @@
             { value: 'vga', label: 'VGA (640 x 480)' },
             { value: 'custom', label: 'カスタム解像度指定' }
         ];
+
+        // 左・右パネル開閉ロジック
+        function toggleLeftPanel() {
+            const panel = document.getElementById('left-panel');
+            const btn = document.getElementById('toggle-left-btn');
+            panel.classList.toggle('collapsed');
+            if (panel.classList.contains('collapsed')) {
+                btn.innerHTML = '▶';
+                btn.title = "設定パネルを表示";
+            } else {
+                btn.innerHTML = '◀';
+                btn.title = "設定パネルを非表示";
+            }
+        }
+
+        function toggleRightPanel() {
+            const panel = document.getElementById('right-panel');
+            const btn = document.getElementById('toggle-right-btn');
+            panel.classList.toggle('collapsed');
+            if (panel.classList.contains('collapsed')) {
+                btn.innerHTML = '◀';
+                btn.title = "プログラムパネルを表示";
+            } else {
+                btn.innerHTML = '▶';
+                btn.title = "プログラムパネルを非表示";
+            }
+        }
 
         // カメラ制御クラス
         class CameraController {
@@ -1426,9 +1541,9 @@
                 id: stepId,
                 type: type,
                 cameraId: activeCameras.length > 0 ? activeCameras[0].id : '',
-                duration: 5, // デフォルト動画録画時間 (5秒)
-                sleepTime: 3, // デフォルトスリープ時間 (3秒)
-                loopCount: 3 // デフォルトループ回数 (3回)
+                minutes: 0, // 分 (動画・スリープ用)
+                seconds: type === 'record' ? 5 : (type === 'sleep' ? 3 : 0), // 秒
+                loopCount: 3 // ループ回数
             };
 
             programSteps.push(step);
@@ -1560,24 +1675,24 @@
                         recCamOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
                     });
 
-                    // 録画時間 (分・秒へのパースと入力)
-                    const min = Math.floor(step.duration / 60);
-                    const sec = step.duration % 60;
-
                     bodyControlsHtml = `
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span>対象:</span>
-                            <select class="form-control btn-sm" style="width: 110px;" id="step-cam-${step.id}" 
-                                onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
-                                ${recCamOpts}
-                            </select>
-                            <span>時間:</span>
-                            <input type="number" class="form-control btn-sm" style="width: 50px;" min="0" value="${min}" id="step-rec-m-${step.id}"
-                                onchange="updateRecordDuration(${step.id})">
-                            <span>分</span>
-                            <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" max="59" value="${sec}" id="step-rec-s-${step.id}"
-                                onchange="updateRecordDuration(${step.id})">
-                            <span>秒</span>
+                        <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span>対象:</span>
+                                <select class="form-control btn-sm" style="width: 140px;" id="step-cam-${step.id}" 
+                                    onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
+                                    ${recCamOpts}
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                                <span>時間:</span>
+                                <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" value="${step.minutes || 0}" id="step-rec-m-${step.id}"
+                                    onchange="updateRecordDuration(${step.id})">
+                                <span>分</span>
+                                <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" value="${step.seconds || 0}" id="step-rec-s-${step.id}"
+                                    onchange="updateRecordDuration(${step.id})">
+                                <span>秒</span>
+                            </div>
                         </div>
                     `;
                     break;
@@ -1585,10 +1700,15 @@
                 case 'sleep':
                     headerBadgeHtml = `<span class="step-type-badge badge-sleep">⏱️ スリープ</span>`;
                     bodyControlsHtml = `
-                        <span>待機時間: </span>
-                        <input type="number" class="form-control btn-sm" style="width: 70px; display:inline;" min="1" value="${step.sleepTime}" 
-                            onchange="updateStepValue(${step.id}, 'sleepTime', parseInt(this.value) || 1)">
-                        <span>秒</span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span>時間:</span>
+                            <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" value="${step.minutes || 0}" id="step-sleep-m-${step.id}"
+                                onchange="updateSleepDuration(${step.id})">
+                            <span>分</span>
+                            <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" value="${step.seconds || 0}" id="step-sleep-s-${step.id}"
+                                onchange="updateSleepDuration(${step.id})">
+                            <span>秒</span>
+                        </div>
                     `;
                     break;
 
@@ -1681,13 +1801,25 @@
             }
         }
 
-        // 動画撮影用時間の同期 (分・秒 → トータル秒)
+        // スリープ時間の同期 (分・秒)
+        function updateSleepDuration(stepId) {
+            const step = programSteps.find(s => s.id === stepId);
+            if (step) {
+                const min = parseInt(document.getElementById(`step-sleep-m-${stepId}`).value) || 0;
+                const sec = parseInt(document.getElementById(`step-sleep-s-${stepId}`).value) || 0;
+                step.minutes = min;
+                step.seconds = sec;
+            }
+        }
+
+        // 動画撮影用時間の同期 (分・秒)
         function updateRecordDuration(stepId) {
             const step = programSteps.find(s => s.id === stepId);
             if (step) {
                 const min = parseInt(document.getElementById(`step-rec-m-${stepId}`).value) || 0;
                 const sec = parseInt(document.getElementById(`step-rec-s-${stepId}`).value) || 0;
-                step.duration = (min * 60) + sec;
+                step.minutes = min;
+                step.seconds = sec;
             }
         }
 
@@ -1801,7 +1933,7 @@
         // 実行中に不要なボタンをロックするヘルパー
         function disableEditorUi(disabled) {
             document.getElementById('btn-add-camera').disabled = disabled;
-            document.querySelectorAll('#sidebar select, #sidebar input').forEach(el => el.disabled = disabled);
+            document.querySelectorAll('.panel select, .panel input').forEach(el => el.disabled = disabled);
             document.querySelectorAll('.step-card button').forEach(el => el.disabled = disabled);
             document.querySelectorAll('.camera-card button').forEach(el => el.disabled = disabled);
         }
@@ -1844,15 +1976,18 @@
                 else if (step.type === 'record') {
                     // 動画録画 (プレビューがONでない場合は最速起動)
                     const cam = activeCameras.find(c => c.id === step.cameraId);
+                    // 分と秒からトータル時間を計算 (60以上のオーバーフローを許容)
+                    const totalSec = (parseInt(step.minutes) || 0) * 60 + (parseInt(step.seconds) || 0);
+
                     if (cam) {
                         const ok = await cam.startRecording();
                         if (ok) {
-                            // 録画時間中待機 (1秒ごとに停止シグナルを確認)
-                            const durationMs = step.duration * 1000;
+                            // 録画時間中待機
+                            const durationMs = totalSec * 1000;
                             const checkInterval = 200;
                             let elapsed = 0;
                             
-                            log(`${cam.name} 録画完了予定時間まで待機します: ${step.duration}秒`);
+                            log(`${cam.name} 録画完了予定時間まで待機します: ${totalSec}秒 (設定値: ${step.minutes || 0}分 ${step.seconds || 0}秒)`);
                             while (elapsed < durationMs && !shouldStopProgram) {
                                 await sleep(checkInterval);
                                 elapsed += checkInterval;
@@ -1861,8 +1996,8 @@
                             await sleep(2200); // メディアの圧縮・保存遅延をカバー
                         } else {
                             // カメラの起動や録画開始に失敗した場合、同等のスリープを実行
-                            log(`⚠️ ${cam.name} の起動または録画開始に失敗しました。時間調整のため、録画時間と同等の待機を行います: ${step.duration}秒`, 'warning');
-                            const durationMs = step.duration * 1000;
+                            log(`⚠️ ${cam.name} の起動または録画開始に失敗しました。同期調整のため、録画時間と同等の待機を行います: ${totalSec}秒`, 'warning');
+                            const durationMs = totalSec * 1000;
                             const checkInterval = 200;
                             let elapsed = 0;
                             while (elapsed < durationMs && !shouldStopProgram) {
@@ -1872,8 +2007,8 @@
                         }
                     } else {
                         // カメラが存在しない場合、同等のスリープを実行
-                        log(`❌ カメラ ID "${step.cameraId}" が見つかりません。時間調整のため、録画時間と同等の待機を行います: ${step.duration}秒`, 'error');
-                        const durationMs = step.duration * 1000;
+                        log(`❌ カメラ ID "${step.cameraId}" が見つかりません。同期調整のため、録画時間と同等の待機を行います: ${totalSec}秒`, 'error');
+                        const durationMs = totalSec * 1000;
                         const checkInterval = 200;
                         let elapsed = 0;
                         while (elapsed < durationMs && !shouldStopProgram) {
@@ -1916,10 +2051,11 @@
                 }
                 else if (step.type === 'sleep') {
                     // スリープ
-                    const durationMs = step.sleepTime * 1000;
+                    const totalSec = (parseInt(step.minutes) || 0) * 60 + (parseInt(step.seconds) || 0);
+                    const durationMs = totalSec * 1000;
                     const checkInterval = 200;
                     let elapsed = 0;
-                    log(`スリープ待機に入ります: ${step.sleepTime}秒`);
+                    log(`スリープ待機に入ります: ${totalSec}秒 (設定値: ${step.minutes || 0}分 ${step.seconds || 0}秒)`);
                     while (elapsed < durationMs && !shouldStopProgram) {
                         await sleep(checkInterval);
                         elapsed += checkInterval;
