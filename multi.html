@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マルチカメラ・シーケンス制御システム</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* プレミアム・ダークテーマ デザインシステム */
+        :root {
+            --bg-base: #060913;
+            --bg-panel: rgba(13, 20, 38, 0.65);
+            --bg-card: rgba(22, 33, 59, 0.45);
+            --bg-input: rgba(30, 48, 86, 0.4);
+            --border-glow: rgba(14, 165, 233, 0.2);
+            --border-base: rgba(255, 255, 255, 0.08);
+            
+            --color-primary: #0ea5e9;
+            --color-primary-glow: rgba(14, 165, 233, 0.45);
+            --color-success: #10b981;
+            --color-success-glow: rgba(16, 185, 129, 0.45);
+            --color-danger: #f43f5e;
+            --color-danger-glow: rgba(244, 63, 94, 0.45);
+            --color-warning: #f59e0b;
+            
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+            
+            --sidebar-width: 410px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.08) 0px, transparent 50%);
+        }
+
+        /* アプリケーションコンテナ */
+        #app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* サイドバー (左側コントロールパネル) */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-base);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        /* ヘッダー */
+        .sidebar-header {
+            padding: 24px 20px 16px 20px;
+            border-bottom: 1px solid var(--border-base);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #ffffff 30%, var(--color-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* スクロール領域 */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* スタイリッシュなスクロールバー */
+        .sidebar-content::-webkit-scrollbar,
+        #preview-area::-webkit-scrollbar,
+        .console-logs::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .sidebar-content::-webkit-scrollbar-track,
+        #preview-area::-webkit-scrollbar-track,
+        .console-logs::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .sidebar-content::-webkit-scrollbar-thumb,
+        #preview-area::-webkit-scrollbar-thumb,
+        .console-logs::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        .sidebar-content::-webkit-scrollbar-thumb:hover,
+        #preview-area::-webkit-scrollbar-thumb:hover,
+        .console-logs::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-glow);
+        }
+
+        /* セクションタイトル */
+        .section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--color-primary);
+            margin: 10px 0 16px 0;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* グラスモフィズムカード */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-base);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card:hover {
+            border-color: rgba(14, 165, 233, 0.25);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        /* UI要素: ボタン */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-base);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px var(--color-primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: #0284c7;
+            border-color: #0284c7;
+            box-shadow: 0 6px 18px var(--color-primary-glow);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px var(--color-success-glow);
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+            box-shadow: 0 6px 18px var(--color-success-glow);
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px var(--color-danger-glow);
+        }
+
+        .btn-danger:hover {
+            background: #e11d48;
+            border-color: #e11d48;
+            box-shadow: 0 6px 18px var(--color-danger-glow);
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+
+        .btn-circle {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        /* フォーム部品 */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-base);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 8px 12px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--color-primary-glow);
+            background: rgba(30, 48, 86, 0.6);
+        }
+
+        .form-row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* 各カメラ設定カード */
+        .camera-card {
+            border-left: 3px solid var(--color-primary);
+            position: relative;
+        }
+
+        .camera-card.active {
+            border-left-color: var(--color-success);
+        }
+
+        .camera-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .camera-card-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .camera-card-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* 警告情報バナー */
+        .alert-info {
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.75rem;
+            color: #bae6fd;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.4;
+        }
+
+        /* プログラムシーケンスエリア */
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 80px;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px dashed var(--border-base);
+            border-radius: 10px;
+            padding: 8px;
+            margin-bottom: 15px;
+        }
+
+        .step-list:empty::after {
+            content: "撮影ステップを追加してください";
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ステップカード */
+        .step-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border-base);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .step-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .step-card.executing {
+            border-color: var(--color-success);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+            animation: pulse-border 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: rgba(16, 185, 129, 0.4); }
+            100% { border-color: rgba(16, 185, 129, 1); }
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-type-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-capture { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+        .badge-record { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .badge-sleep { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-preview-on { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-preview-off { background: rgba(244, 63, 94, 0.2); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .badge-loop-start { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-loop-end { background: rgba(168, 85, 247, 0.15); color: #e9d5ff; border: 1px solid rgba(168, 85, 247, 0.2); }
+
+        .step-body {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .step-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* ループのインデント視覚効果 */
+        .step-card.in-loop {
+            margin-left: 15px;
+            border-left: 2px solid rgba(168, 85, 247, 0.3);
+        }
+
+        /* 撮影プログラムコントローラー */
+        .program-trigger-box {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* ターミナル風コンソール */
+        .console-box {
+            background: #02040a;
+            border: 1px solid var(--border-base);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 180px;
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .console-logs {
+            flex: 1;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: #a7f3d0;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            margin-right: 6px;
+        }
+
+        .log-error {
+            color: #fda4af;
+        }
+
+        .log-info {
+            color: #38bdf8;
+        }
+
+        /* メイン プレビュー領域 (右側) */
+        #preview-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: #03050b;
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            align-content: start;
+        }
+
+        /* 1台だけプレビュー中の場合は、画面いっぱいに広げる */
+        #preview-area.single-view {
+            grid-template-columns: 1fr;
+        }
+
+        /* カメラプレビューコンテナ */
+        .preview-card {
+            background: rgba(13, 20, 38, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16 / 9;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .preview-card:hover {
+            border-color: var(--color-primary-glow);
+            box-shadow: 0 16px 50px rgba(14, 165, 233, 0.15);
+        }
+
+        .preview-card.recording-active {
+            border-color: var(--color-danger);
+            box-shadow: 0 0 25px rgba(244, 63, 94, 0.25);
+        }
+
+        .preview-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+
+        /* プレビューオーバーレイ情報 */
+        .preview-overlay {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .preview-badge {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .preview-status.active {
+            background: var(--color-success);
+            box-shadow: 0 0 8px var(--color-success);
+        }
+
+        .preview-status.recording {
+            background: var(--color-danger);
+            animation: pulse-red 1s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px var(--color-danger); }
+        }
+
+        .preview-resolution {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+        }
+
+        .preview-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .preview-placeholder svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.35;
+            color: var(--text-muted);
+        }
+
+        /* 撮影時のフラッシュエフェクト */
+        .flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .flash-overlay.flash-active {
+            animation: flash-animation 0.4s ease-out;
+        }
+
+        @keyframes flash-animation {
+            0% { opacity: 0.85; }
+            100% { opacity: 0; }
+        }
+
+        /* ヘルパーユーティリティ */
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-3 { margin-top: 12px; }
+        .mb-2 { margin-bottom: 8px; }
+
+        /* SVGアイコン用スタイル */
+        .icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <!-- 非表示の静止画用Canvas -->
+    <canvas id="snapshot-canvas" style="display: none;"></canvas>
+
+    <div id="app-container">
+        <!-- コントロールサイドバー (左側) -->
+        <aside id="sidebar">
+            <!-- ヘッダー -->
+            <div class="sidebar-header">
+                <h1>
+                    <!-- カメラのSVG -->
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 22px; height: 22px;">
+                        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h-2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                    </svg>
+                    マルチカメラ制御システム
+                </h1>
+                <p>複数カメラのプレビュー同時出力とシーケンス撮影プログラム</p>
+            </div>
+
+            <!-- スクロールコンテンツ -->
+            <div class="sidebar-content">
+                <!-- 警告・お知らせ -->
+                <div class="alert-info">
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 20px; height: 20px; flex-shrink: 0; color: #38bdf8;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    <div>
+                        <strong>USB帯域幅に関する注意:</strong> 同一のUSBハブやポートに複数の高解像度カメラを接続すると、PCの帯域制限により映像が取得できなくなる場合があります。エラー時は解像度を下げてお試しください。
+                    </div>
+                </div>
+
+                <!-- カメラ管理セクション -->
+                <div class="section-title">
+                    <span>カメラ管理</span>
+                    <button class="btn btn-primary btn-sm" id="btn-add-camera" onclick="addCamera()">
+                        <svg class="icon" viewBox="0 0 24 24" style="width: 12px; height: 12px;">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                        カメラを追加
+                    </button>
+                </div>
+
+                <!-- カメラカードコンテナ -->
+                <div id="camera-cards-container">
+                    <!-- カメラカードはJavaScriptで動的に追加されます -->
+                </div>
+
+                <!-- シーケンス制御セクション -->
+                <div class="section-title">
+                    <span>プログラム・シーケンス</span>
+                </div>
+
+                <!-- ステップ追加用ツールバー -->
+                <div class="card" style="padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">撮影コマンドを追加:</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
+                        <button class="btn btn-sm" onclick="addStep('capture')" title="静止画を撮影し保存するステップを追加">
+                            <span style="color: #38bdf8; font-weight: bold; margin-right: 4px;">📷</span> 静止画
+                        </button>
+                        <button class="btn btn-sm" onclick="addStep('record')" title="動画を録画し保存するステップを追加">
+                            <span style="color: #fb7185; font-weight: bold; margin-right: 4px;">🎥</span> 動画
+                        </button>
+                        <button class="btn btn-sm" onclick="addStep('sleep')" title="指定時間待機するステップを追加">
+                            <span style="color: #fbbf24; font-weight: bold; margin-right: 4px;">⏱️</span> スリープ
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 6px;">
+                        <button class="btn btn-sm" onclick="addStep('preview_on')" title="プレビューをONにするステップを追加 (※実行に5秒かかります)">
+                            <span style="color: #10b981; font-weight: bold; margin-right: 4px;">👁️</span> プレビューON
+                        </button>
+                        <button class="btn btn-sm" onclick="addStep('preview_off')" title="プレビューをOFFにするステップを追加">
+                            <span style="color: #f43f5e; font-weight: bold; margin-right: 4px;">🙈</span> プレビューOFF
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                        <button class="btn btn-sm" onclick="addStep('loop_start')" title="繰り返し処理を開始するブロックを追加">
+                            <span style="color: #c084fc; font-weight: bold; margin-right: 4px;">🔁</span> ループ開始
+                        </button>
+                        <button class="btn btn-sm" onclick="addStep('loop_end')" title="繰り返し処理を終了するポイントを追加">
+                            <span style="color: #e9d5ff; font-weight: bold; margin-right: 4px;">↩️</span> ループ終了
+                        </button>
+                    </div>
+                </div>
+
+                <!-- シーケンスステップのリスト -->
+                <div id="step-list-container" class="step-list">
+                    <!-- ステップカードがJSで追加されます -->
+                </div>
+
+                <!-- プログラム全体ループとトリガー -->
+                <div class="program-trigger-box">
+                    <button class="btn btn-success" id="btn-run-program" onclick="toggleProgram()">
+                        <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        プログラム実行
+                    </button>
+                    <button class="btn btn-danger" id="btn-stop-program" onclick="stopProgram()" disabled>
+                        <svg class="icon" viewBox="0 0 24 24" style="width: 14px; height: 14px;">
+                            <path d="M6 19h12V5H6v14z"/>
+                        </svg>
+                        停止
+                    </button>
+                </div>
+
+                <!-- リアルタイムコンソール -->
+                <div class="console-box">
+                    <div class="console-header">
+                        <span>実行ログ・モニター</span>
+                        <span style="cursor: pointer; text-decoration: underline;" onclick="clearLogs()">クリア</span>
+                    </div>
+                    <div class="console-logs" id="console-logs-container">
+                        <div class="log-entry"><span class="log-time">[00:00:00]</span> システムが起動しました。</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 映像プレビュー領域 (右側) -->
+        <main id="preview-area">
+            <!-- プレビューカードが動的に追加されます -->
+        </main>
+    </div>
+
+    <!-- JavaScriptロジック -->
+    <script>
+        // グローバル変数
+        let videoDevices = []; // 利用可能なビデオ入力デバイス
+        let activeCameras = []; // CameraController インスタンスのリスト
+        let programSteps = []; // シーケンスステップ
+        let nextStepId = 1;
+
+        // 実行エンジン用状態
+        let isProgramRunning = false;
+        let activeProgramPromise = null;
+        let shouldStopProgram = false;
+        let activeMediaRecorders = []; // 停止命令用に現在動作中のレコーダーを格納
+
+        // 解像度プリセット定義
+        const RESOLUTION_PRESETS = [
+            { value: 'max', label: '最大解像度 (理想自動設定)' },
+            { value: '4k', label: '4K (3840 x 2160)' },
+            { value: '1080p', label: 'Full HD (1920 x 1080)' },
+            { value: '720p', label: 'HD (1280 x 720)' },
+            { value: 'vga', label: 'VGA (640 x 480)' },
+            { value: 'custom', label: 'カスタム解像度指定' }
+        ];
+
+        // カメラ制御クラス
+        class CameraController {
+            constructor(id, num, deviceId = "") {
+                this.id = id; // 固有ID "camera_N"
+                this.num = num; // カメラ番号 (1, 2, 3...)
+                this.name = `カメラ ${num}`; // 任意のカメラ表示名
+                this.deviceId = deviceId; // デバイスID
+                this.resolutionMode = "max"; // max, 4k, 1080p, 720p, vga, custom
+                this.customWidth = 1920;
+                this.customHeight = 1080;
+                this.stream = null;
+                this.recorder = null;
+                this.recordedChunks = [];
+                this.isRecording = false;
+            }
+
+            // カメラ名の更新
+            updateName(newName) {
+                if (newName && newName.trim()) {
+                    this.name = newName.trim();
+                    log(`カメラ ${this.num} の名前を "${this.name}" に変更しました。`, 'info');
+                    this.updatePreviewLabel();
+                    updateStepSelects();
+                }
+            }
+
+            // プレビューラベルの更新
+            updatePreviewLabel() {
+                const badge = document.querySelector(`#preview-card-${this.id} .preview-badge-name`);
+                if (badge) {
+                    badge.textContent = this.name;
+                }
+            }
+
+            // カメラデバイス変更
+            async changeDevice(deviceId) {
+                this.deviceId = deviceId;
+                if (this.stream) {
+                    await this.startPreview(); // プレビュー中なら再起動
+                }
+            }
+
+            // 解像度モード変更
+            async changeResolutionMode(mode) {
+                this.resolutionMode = mode;
+                
+                // カスタムサイズ入力欄の表示制御
+                const customInputs = document.getElementById(`custom-res-${this.id}`);
+                if (customInputs) {
+                    customInputs.style.display = mode === 'custom' ? 'grid' : 'none';
+                }
+
+                if (this.stream) {
+                    log(`${this.name} の解像度を変更しプレビューを再接続します...`);
+                    await this.startPreview();
+                }
+            }
+
+            // カスタム解像度値変更
+            async changeCustomResolution(width, height) {
+                this.customWidth = parseInt(width) || 1920;
+                this.customHeight = parseInt(height) || 1080;
+                if (this.stream) {
+                    await this.startPreview();
+                }
+            }
+
+            // メディアストリーム制約の構築
+            getConstraints() {
+                let widthConstraint = { ideal: 3840 };
+                let heightConstraint = { ideal: 2160 };
+
+                switch (this.resolutionMode) {
+                    case '4k':
+                        widthConstraint = { exact: 3840 };
+                        heightConstraint = { exact: 2160 };
+                        break;
+                    case '1080p':
+                        widthConstraint = { exact: 1920 };
+                        heightConstraint = { exact: 1080 };
+                        break;
+                    case '720p':
+                        widthConstraint = { exact: 1280 };
+                        heightConstraint = { exact: 720 };
+                        break;
+                    case 'vga':
+                        widthConstraint = { exact: 640 };
+                        heightConstraint = { exact: 480 };
+                        break;
+                    case 'custom':
+                        widthConstraint = { exact: this.customWidth };
+                        heightConstraint = { exact: this.customHeight };
+                        break;
+                    case 'max':
+                    default:
+                        // 最大値を狙う
+                        widthConstraint = { ideal: 4096 };
+                        heightConstraint = { ideal: 2160 };
+                        break;
+                }
+
+                const constraints = {
+                    video: {
+                        width: widthConstraint,
+                        height: heightConstraint,
+                        audio: false
+                    }
+                };
+
+                if (this.deviceId) {
+                    constraints.video.deviceId = { exact: this.deviceId };
+                }
+
+                return constraints;
+            }
+
+            // プレビューの開始
+            async startPreview() {
+                this.stopPreview(); // 既存のストリームがあれば安全に停止
+
+                const videoElement = document.getElementById(`video-${this.id}`);
+                const previewCard = document.getElementById(`preview-card-${this.id}`);
+                if (!videoElement) return;
+
+                log(`${this.name} プレビュー起動中...`);
+                
+                try {
+                    const constraints = this.getConstraints();
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    
+                    this.stream = stream;
+                    videoElement.srcObject = stream;
+                    videoElement.play();
+
+                    // UI上のステータス表示を更新
+                    const statusDot = document.querySelector(`#preview-card-${this.id} .preview-status`);
+                    if (statusDot) {
+                        statusDot.classList.add('active');
+                    }
+
+                    // プレビュー開始時の解像度実測値を表示
+                    videoElement.onloadedmetadata = () => {
+                        const resLabel = document.querySelector(`#preview-card-${this.id} .preview-resolution`);
+                        if (resLabel) {
+                            resLabel.textContent = `${videoElement.videoWidth} x ${videoElement.videoHeight}`;
+                        }
+                        log(`${this.name} が起動しました (解像度: ${videoElement.videoWidth}x${videoElement.videoHeight})`, 'info');
+                    };
+
+                    // カードのアクティブ表示
+                    const cardUi = document.getElementById(`camera-card-${this.id}`);
+                    if (cardUi) cardUi.classList.add('active');
+
+                    // プレビューボタン表記の切り替え
+                    const playBtn = document.getElementById(`btn-play-${this.id}`);
+                    if (playBtn) {
+                        playBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                            停止
+                        `;
+                        playBtn.classList.replace('btn-primary', 'btn-danger');
+                    }
+
+                    // プレビューのプレースホルダーを消す
+                    const placeholder = document.querySelector(`#preview-card-${this.id} .preview-placeholder`);
+                    if (placeholder) placeholder.style.display = 'none';
+                    videoElement.style.display = 'block';
+
+                } catch (e) {
+                    console.error(`${this.name} 起動エラー:`, e);
+                    log(`${this.name} の起動に失敗しました。帯域幅超過かデバイス使用中エラーです。: ${e.name}`, 'error');
+                    
+                    // UIリセット
+                    this.stopPreview();
+                }
+            }
+
+            // プレビューの停止
+            stopPreview() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+
+                const videoElement = document.getElementById(`video-${this.id}`);
+                if (videoElement) {
+                    videoElement.srcObject = null;
+                    videoElement.style.display = 'none';
+                }
+
+                // UIリセット
+                const statusDot = document.querySelector(`#preview-card-${this.id} .preview-status`);
+                if (statusDot) {
+                    statusDot.classList.remove('active', 'recording');
+                }
+
+                const resLabel = document.querySelector(`#preview-card-${this.id} .preview-resolution`);
+                if (resLabel) {
+                    resLabel.textContent = `--- x ---`;
+                }
+
+                const playBtn = document.getElementById(`btn-play-${this.id}`);
+                if (playBtn) {
+                    playBtn.innerHTML = `
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        プレビュー
+                    `;
+                    playBtn.classList.replace('btn-danger', 'btn-primary');
+                }
+
+                const cardUi = document.getElementById(`camera-card-${this.id}`);
+                if (cardUi) cardUi.classList.remove('active');
+
+                const placeholder = document.querySelector(`#preview-card-${this.id} .preview-placeholder`);
+                if (placeholder) placeholder.style.display = 'flex';
+                
+                log(`${this.name} プレビューを停止しました。`);
+            }
+
+            // トグル処理
+            async togglePreview() {
+                if (this.stream) {
+                    this.stopPreview();
+                } else {
+                    await this.startPreview();
+                }
+            }
+
+            // 静止画の撮影・保存 (プレビュー未起動時は最速起動)
+            async capture() {
+                if (!this.stream) {
+                    log(`${this.name} が起動していないため、静止画を撮影できません。自動的にプレビューを最速起動します...`, 'warning');
+                    await this.startPreview();
+                    if (!this.stream) return false;
+                    await sleep(800); // 起動直後の黒画面を避けるための最速ディレイ
+                }
+
+                const videoElement = document.getElementById(`video-${this.id}`);
+                const canvas = document.getElementById('snapshot-canvas');
+                const ctx = canvas.getContext('2d');
+
+                // 実測定解像度にキャンバスサイズを合わせる
+                const w = videoElement.videoWidth;
+                const h = videoElement.videoHeight;
+                canvas.width = w;
+                canvas.height = h;
+
+                // フラッシュエフェクトをプレビューに被せる
+                triggerFlash(this.id);
+                playSynthesizedSound('capture');
+
+                // Canvasに描画
+                ctx.drawImage(videoElement, 0, 0, w, h);
+
+                log(`${this.name} で静止画をキャプチャ中 (${w}x${h})...`, 'info');
+
+                // Blobにエクスポートして自動ダウンロード
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const filename = `${this.name.replace(/\s+/g, '_')}_${getFormattedDate()}.png`;
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(a.href);
+                            }, 200);
+                            log(`${this.name} 静止画を保存しました: ${filename}`, 'info');
+                            resolve(true);
+                        } else {
+                            log(`${this.name} 静止画データの取得に失敗しました。`, 'error');
+                            resolve(false);
+                        }
+                    }, 'image/png');
+                });
+            }
+
+            // 動画の録画開始 (プレビュー未起動時は最速起動)
+            async startRecording() {
+                if (!this.stream) {
+                    log(`${this.name} が起動していないため、動画を録画できません。自動的にプレビューを最速起動します...`, 'warning');
+                    await this.startPreview();
+                    if (!this.stream) return false;
+                    await sleep(800); // 最速起動用ディレイ
+                }
+
+                this.recordedChunks = [];
+                let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                }
+
+                try {
+                    this.recorder = new MediaRecorder(this.stream, options);
+                    this.recorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) {
+                            this.recordedChunks.push(e.data);
+                        }
+                    };
+
+                    this.recorder.onstop = () => {
+                        this.saveRecording();
+                    };
+
+                    this.recorder.start();
+                    this.isRecording = true;
+                    activeMediaRecorders.push(this.recorder);
+
+                    // UI 更新
+                    const statusDot = document.querySelector(`#preview-card-${this.id} .preview-status`);
+                    if (statusDot) {
+                        statusDot.classList.add('recording');
+                    }
+                    const previewCard = document.getElementById(`preview-card-${this.id}`);
+                    if (previewCard) {
+                        previewCard.classList.add('recording-active');
+                    }
+
+                    playSynthesizedSound('record_start');
+                    log(`${this.name} 動画録画を開始しました。`, 'info');
+                    return true;
+                } catch (err) {
+                    log(`${this.name} 動画録画の初期化に失敗しました: ${err.message}`, 'error');
+                    return false;
+                }
+            }
+
+            // 動画の録画停止
+            stopRecording() {
+                if (this.recorder && this.recorder.state === 'recording') {
+                    this.recorder.stop();
+                    this.isRecording = false;
+                    
+                    // アラートとリストから削除
+                    activeMediaRecorders = activeMediaRecorders.filter(r => r !== this.recorder);
+
+                    // UI 更新
+                    const statusDot = document.querySelector(`#preview-card-${this.id} .preview-status`);
+                    if (statusDot) {
+                        statusDot.classList.remove('recording');
+                    }
+                    const previewCard = document.getElementById(`preview-card-${this.id}`);
+                    if (previewCard) {
+                        previewCard.classList.remove('recording-active');
+                    }
+
+                    playSynthesizedSound('record_stop');
+                    log(`${this.name} 録画を停止しました。エクスポート処理中...`);
+                }
+            }
+
+            // 録画データのファイルエクスポート
+            saveRecording() {
+                if (this.recordedChunks.length === 0) {
+                    log(`${this.name} 録画データが空です。保存をスキップしました。`, 'warning');
+                    return;
+                }
+
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                const filename = `${this.name.replace(/\s+/g, '_')}_${getFormattedDate()}.webm`;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 200);
+
+                log(`${this.name} 動画を保存しました: ${filename}`, 'info');
+                this.recordedChunks = [];
+            }
+        }
+
+        // 初期化処理
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeDevices();
+            
+            // 初期状態としてカメラ1を1つ追加
+            addCamera();
+            
+            // 初期の撮影ステップテンプレート
+            addStep('capture');
+            addStep('sleep');
+
+            log("システム初期化完了。カメラデバイスと基本シーケンスをロードしました。");
+        });
+
+        // カメラデバイスリストの列挙
+        async function initializeDevices() {
+            try {
+                // カメラのパーミッション確認用ダミー呼び出し
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(err => {
+                    log("カメラデバイスへのアクセス許可が得られませんでした。プライバシー設定をご確認ください。", 'error');
+                });
+                if (tempStream) {
+                    tempStream.getTracks().forEach(track => track.stop()); // 即解放
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                log(`接続されたカメラを検出しました: ${videoDevices.length}台`, 'info');
+            } catch (e) {
+                console.error("デバイス列挙エラー:", e);
+                log("カメラデバイスの一覧取得に失敗しました。", 'error');
+            }
+        }
+
+        // カメラの追加処理
+        function addCamera() {
+            const nextNum = activeCameras.length + 1;
+            const camId = `cam_${Date.now()}`; // 衝突を防ぐためのユニークID
+
+            // デバイスリストから割り当て可能な候補を選択 (重複を避ける)
+            let defaultDeviceId = "";
+            if (videoDevices.length > 0) {
+                const usedDeviceIds = activeCameras.map(c => c.deviceId);
+                const available = videoDevices.find(d => !usedDeviceIds.includes(d.deviceId));
+                defaultDeviceId = available ? available.deviceId : videoDevices[0].deviceId;
+            }
+
+            const cam = new CameraController(camId, nextNum, defaultDeviceId);
+            activeCameras.push(cam);
+
+            // UIレンダリング
+            renderCameraCard(cam);
+            renderPreviewContainer(cam);
+
+            // 追加されたカメラのプレビュー自動開始 (帯域の問題があるので最初の1台目のみ推奨)
+            if (activeCameras.length === 1) {
+                cam.startPreview();
+            }
+
+            // 他のセレクトボックスのカメラ参照を更新
+            updateStepSelects();
+            log(`${cam.name} を追加しました。`);
+            
+            // プレビューグリッドのレイアウト調整
+            adjustGridStyle();
+        }
+
+        // カメラの削除
+        function removeCamera(camId) {
+            const index = activeCameras.findIndex(c => c.id === camId);
+            if (index === -1) return;
+
+            const cam = activeCameras[index];
+            cam.stopPreview(); // プレビュー終了
+
+            // メモリから削除
+            activeCameras.splice(index, 1);
+
+            // カメラ名とカメラ番号の再ナンバリング
+            activeCameras.forEach((c, idx) => {
+                c.num = idx + 1;
+                c.name = `カメラ ${c.num}`;
+                c.updatePreviewLabel();
+                
+                // カメラカードのタイトル表記もリフレッシュ
+                const titleNode = document.querySelector(`#camera-card-${c.id} .camera-card-title span`);
+                if (titleNode) titleNode.textContent = c.name;
+            });
+
+            // UI削除
+            const card = document.getElementById(`camera-card-${camId}`);
+            if (card) card.remove();
+
+            const preview = document.getElementById(`preview-card-${camId}`);
+            if (preview) preview.remove();
+
+            // 他のセレクトボックスのカメラ参照を更新
+            updateStepSelects();
+            log(`${cam.name} を削除しました。`);
+            
+            adjustGridStyle();
+        }
+
+        // カメラ管理カードの作成
+        function renderCameraCard(cam) {
+            const container = document.getElementById('camera-cards-container');
+            const card = document.createElement('div');
+            card.className = 'card camera-card';
+            card.id = `camera-card-${cam.id}`;
+
+            // デバイスオプションの生成
+            let deviceOptionsHtml = `<option value="">(カメラデバイス未選択)</option>`;
+            videoDevices.forEach((dev) => {
+                const label = dev.label || `カメラデバイス ${dev.deviceId.slice(0, 8)}...`;
+                const selected = dev.deviceId === cam.deviceId ? 'selected' : '';
+                deviceOptionsHtml += `<option value="${dev.deviceId}" ${selected}>${label}</option>`;
+            });
+
+            // 解像度オプションの生成
+            let resOptionsHtml = '';
+            RESOLUTION_PRESETS.forEach((preset) => {
+                const selected = preset.value === cam.resolutionMode ? 'selected' : '';
+                resOptionsHtml += `<option value="${preset.value}" ${selected}>${preset.label}</option>`;
+            });
+
+            card.innerHTML = `
+                <div class="camera-card-header">
+                    <div class="camera-card-title">
+                        <span style="font-weight:700;">${cam.name}</span>
+                    </div>
+                    <div class="camera-card-actions">
+                        ${cam.num > 1 ? `
+                        <button class="btn btn-sm btn-circle btn-danger" onclick="removeCamera('${cam.id}')" title="このカメラを削除">
+                            ✕
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>USBカメラデバイス</label>
+                    <select class="form-control" onchange="activeCameras.find(c => c.id === '${cam.id}').changeDevice(this.value)">
+                        ${deviceOptionsHtml}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>表示名カスタム (空欄でデフォルト)</label>
+                    <input type="text" class="form-control" placeholder="例: 正面広角カメラ" onchange="activeCameras.find(c => c.id === '${cam.id}').updateName(this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label>キャプチャ解像度</label>
+                    <select class="form-control" onchange="activeCameras.find(c => c.id === '${cam.id}').changeResolutionMode(this.value)">
+                        ${resOptionsHtml}
+                    </select>
+                </div>
+
+                <div class="form-group form-row-grid" id="custom-res-${cam.id}" style="display: none;">
+                    <div>
+                        <label>幅 (px)</label>
+                        <input type="number" class="form-control" value="1920" placeholder="1920" id="custom-w-${cam.id}" 
+                            onchange="activeCameras.find(c => c.id === '${cam.id}').changeCustomResolution(this.value, document.getElementById('custom-h-${cam.id}').value)">
+                    </div>
+                    <div>
+                        <label>高さ (px)</label>
+                        <input type="number" class="form-control" value="1080" placeholder="1080" id="custom-h-${cam.id}"
+                            onchange="activeCameras.find(c => c.id === '${cam.id}').changeCustomResolution(document.getElementById('custom-w-${cam.id}').value, this.value)">
+                    </div>
+                </div>
+
+                <div class="mt-3 flex-between">
+                    <button class="btn btn-primary" id="btn-play-${cam.id}" onclick="activeCameras.find(c => c.id === '${cam.id}').togglePreview()" style="width: 100%;">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        プレビュー
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        // 右側のカメラプレビューコンテナの作成
+        function renderPreviewContainer(cam) {
+            const area = document.getElementById('preview-area');
+            const container = document.createElement('div');
+            container.className = 'preview-card';
+            container.id = `preview-card-${cam.id}`;
+
+            container.innerHTML = `
+                <!-- 映像要素 -->
+                <video class="preview-video" id="video-${cam.id}" autoplay playsinline muted style="display: none;"></video>
+                
+                <!-- プレースホルダー -->
+                <div class="preview-placeholder">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 16H5V8h9v8z"/>
+                    </svg>
+                    <div>
+                        <p style="font-weight: 600; font-size: 0.9rem;">${cam.name}</p>
+                        <p style="font-size: 0.75rem; margin-top: 4px;">プレビューが停止しています</p>
+                    </div>
+                </div>
+
+                <!-- オーバーレイ情報 -->
+                <div class="preview-overlay">
+                    <div class="preview-badge">
+                        <span class="preview-status"></span>
+                        <span class="preview-badge-name">${cam.name}</span>
+                    </div>
+                    <div class="preview-badge preview-resolution">
+                        --- x ---
+                    </div>
+                </div>
+
+                <!-- フラッシュ演出 -->
+                <div class="flash-overlay" id="flash-${cam.id}"></div>
+            `;
+
+            area.appendChild(container);
+        }
+
+        // カメラプレビューグリッド数の最適化
+        function adjustGridStyle() {
+            const area = document.getElementById('preview-area');
+            if (activeCameras.length === 1) {
+                area.classList.add('single-view');
+            } else {
+                area.classList.remove('single-view');
+            }
+        }
+
+        // プレビュー時のフラッシュ演出
+        function triggerFlash(camId) {
+            const flash = document.getElementById(`flash-${camId}`);
+            if (flash) {
+                flash.classList.remove('flash-active');
+                void flash.offsetWidth; // リフローを起こしてアニメーション再トリガー
+                flash.classList.add('flash-active');
+            }
+        }
+
+        /* シーケンスビルダー (UI・構築) */
+
+        // ステップ追加
+        function addStep(type) {
+            const stepId = nextStepId++;
+            const step = {
+                id: stepId,
+                type: type,
+                cameraId: activeCameras.length > 0 ? activeCameras[0].id : '',
+                duration: 5, // デフォルト動画録画時間 (5秒)
+                sleepTime: 3, // デフォルトスリープ時間 (3秒)
+                loopCount: 3 // デフォルトループ回数 (3回)
+            };
+
+            programSteps.push(step);
+            renderStepCard(step);
+            updateStepLoopVisuals(); // インデントと枠線整理
+            
+            // 新規追加されたら一番下へスクロール
+            const container = document.getElementById('step-list-container');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ステップの削除
+        function removeStep(stepId) {
+            const index = programSteps.findIndex(s => s.id === stepId);
+            if (index === -1) return;
+
+            programSteps.splice(index, 1);
+            
+            const card = document.getElementById(`step-card-${stepId}`);
+            if (card) card.remove();
+
+            updateStepLoopVisuals();
+            log("ステップを削除しました。");
+        }
+
+        // ステップ順序変更 (上へ)
+        function moveStepUp(stepId) {
+            const index = programSteps.findIndex(s => s.id === stepId);
+            if (index <= 0) return; // すでに一番上か存在しない
+
+            // 配列の交換
+            const temp = programSteps[index - 1];
+            programSteps[index - 1] = programSteps[index];
+            programSteps[index] = temp;
+
+            rebuildStepListUi();
+        }
+
+        // ステップ順序変更 (下へ)
+        function moveStepDown(stepId) {
+            const index = programSteps.findIndex(s => s.id === stepId);
+            if (index === -1 || index >= programSteps.length - 1) return; // すでに一番下
+
+            // 配列の交換
+            const temp = programSteps[index + 1];
+            programSteps[index + 1] = programSteps[index];
+            programSteps[index] = temp;
+
+            rebuildStepListUi();
+        }
+
+        // ステップリストUIの完全再描画
+        function rebuildStepListUi() {
+            const container = document.getElementById('step-list-container');
+            container.innerHTML = ''; // クリア
+
+            programSteps.forEach((step) => {
+                renderStepCard(step);
+            });
+
+            updateStepLoopVisuals();
+        }
+
+        // ステップ選択ドロップダウンメニューの更新 (カメラが追加・削除されたとき用)
+        function updateStepSelects() {
+            programSteps.forEach((step) => {
+                if (step.type === 'capture' || step.type === 'record' || step.type === 'preview_on' || step.type === 'preview_off') {
+                    const select = document.getElementById(`step-cam-${step.id}`);
+                    if (select) {
+                        const previousVal = select.value;
+                        select.innerHTML = '';
+                        
+                        activeCameras.forEach((cam) => {
+                            const opt = document.createElement('option');
+                            opt.value = cam.id;
+                            opt.textContent = cam.name;
+                            select.appendChild(opt);
+                        });
+
+                        // 以前の値がまだ有効なら復元
+                        if (activeCameras.find(c => c.id === previousVal)) {
+                            select.value = previousVal;
+                        } else if (activeCameras.length > 0) {
+                            select.value = activeCameras[0].id;
+                            step.cameraId = activeCameras[0].id;
+                        }
+                    }
+                }
+            });
+        }
+
+        // 各ステップカードのHTML生成
+        function renderStepCard(step) {
+            const container = document.getElementById('step-list-container');
+            const card = document.createElement('div');
+            card.className = 'step-card';
+            card.id = `step-card-${step.id}`;
+
+            // ステップ種別バッジとインプットUIの制御
+            let headerBadgeHtml = '';
+            let bodyControlsHtml = '';
+
+            switch (step.type) {
+                case 'capture':
+                    headerBadgeHtml = `<span class="step-type-badge badge-capture">📷 静止画撮影</span>`;
+                    
+                    // カメラのオプション構築
+                    let capCamOpts = '';
+                    activeCameras.forEach(c => {
+                        const sel = c.id === step.cameraId ? 'selected' : '';
+                        capCamOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
+                    });
+
+                    bodyControlsHtml = `
+                        <span>対象カメラ: </span>
+                        <select class="form-control btn-sm" style="width: 140px; display:inline;" id="step-cam-${step.id}" 
+                            onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
+                            ${capCamOpts}
+                        </select>
+                    `;
+                    break;
+
+                case 'record':
+                    headerBadgeHtml = `<span class="step-type-badge badge-record">🎥 動画撮影</span>`;
+                    
+                    let recCamOpts = '';
+                    activeCameras.forEach(c => {
+                        const sel = c.id === step.cameraId ? 'selected' : '';
+                        recCamOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
+                    });
+
+                    // 録画時間 (分・秒へのパースと入力)
+                    const min = Math.floor(step.duration / 60);
+                    const sec = step.duration % 60;
+
+                    bodyControlsHtml = `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span>対象:</span>
+                            <select class="form-control btn-sm" style="width: 110px;" id="step-cam-${step.id}" 
+                                onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
+                                ${recCamOpts}
+                            </select>
+                            <span>時間:</span>
+                            <input type="number" class="form-control btn-sm" style="width: 50px;" min="0" value="${min}" id="step-rec-m-${step.id}"
+                                onchange="updateRecordDuration(${step.id})">
+                            <span>分</span>
+                            <input type="number" class="form-control btn-sm" style="width: 55px;" min="0" max="59" value="${sec}" id="step-rec-s-${step.id}"
+                                onchange="updateRecordDuration(${step.id})">
+                            <span>秒</span>
+                        </div>
+                    `;
+                    break;
+
+                case 'sleep':
+                    headerBadgeHtml = `<span class="step-type-badge badge-sleep">⏱️ スリープ</span>`;
+                    bodyControlsHtml = `
+                        <span>待機時間: </span>
+                        <input type="number" class="form-control btn-sm" style="width: 70px; display:inline;" min="1" value="${step.sleepTime}" 
+                            onchange="updateStepValue(${step.id}, 'sleepTime', parseInt(this.value) || 1)">
+                        <span>秒</span>
+                    `;
+                    break;
+
+                case 'preview_on':
+                    headerBadgeHtml = `<span class="step-type-badge badge-preview-on">👁️ プレビューON</span>`;
+                    
+                    let onCamOpts = '';
+                    activeCameras.forEach(c => {
+                        const sel = c.id === step.cameraId ? 'selected' : '';
+                        onCamOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
+                    });
+
+                    bodyControlsHtml = `
+                        <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span>対象:</span>
+                                <select class="form-control btn-sm" style="width: 140px; display:inline;" id="step-cam-${step.id}" 
+                                    onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
+                                    ${onCamOpts}
+                                </select>
+                            </div>
+                            <span style="color:var(--color-warning); font-size:0.7rem; margin-top:2px; font-weight: 500;">
+                                ⚠️ 起動安定化のため、このステップの実行には必ず5秒かかります。
+                            </span>
+                        </div>
+                    `;
+                    break;
+
+                case 'preview_off':
+                    headerBadgeHtml = `<span class="step-type-badge badge-preview-off">🙈 プレビューOFF</span>`;
+                    
+                    let offCamOpts = '';
+                    activeCameras.forEach(c => {
+                        const sel = c.id === step.cameraId ? 'selected' : '';
+                        offCamOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
+                    });
+
+                    bodyControlsHtml = `
+                        <span>対象カメラ: </span>
+                        <select class="form-control btn-sm" style="width: 140px; display:inline;" id="step-cam-${step.id}" 
+                            onchange="updateStepValue(${step.id}, 'cameraId', this.value)">
+                            ${offCamOpts}
+                        </select>
+                    `;
+                    break;
+
+                case 'loop_start':
+                    headerBadgeHtml = `<span class="step-type-badge badge-loop-start">🔁 ループ開始</span>`;
+                    bodyControlsHtml = `
+                        <span>繰り返し回数: </span>
+                        <input type="number" class="form-control btn-sm" style="width: 60px; display:inline;" min="1" value="${step.loopCount}" 
+                            onchange="updateStepValue(${step.id}, 'loopCount', parseInt(this.value) || 1)">
+                        <span>回</span>
+                    `;
+                    break;
+
+                case 'loop_end':
+                    headerBadgeHtml = `<span class="step-type-badge badge-loop-end">↩️ ループ終了</span>`;
+                    bodyControlsHtml = `
+                        <span style="color:var(--text-muted); font-size:0.75rem;">ループ開始ブロックへ戻ります。</span>
+                    `;
+                    break;
+            }
+
+            card.innerHTML = `
+                <div class="step-header">
+                    ${headerBadgeHtml}
+                    <div class="step-controls">
+                        <button class="btn btn-sm btn-circle" onclick="moveStepUp(${step.id})" title="ステップを上へ移動">▲</button>
+                        <button class="btn btn-sm btn-circle" onclick="moveStepDown(${step.id})" title="ステップを下へ移動">▼</button>
+                        <button class="btn btn-sm btn-circle btn-danger" onclick="removeStep(${step.id})" title="このステップを削除">✕</button>
+                    </div>
+                </div>
+                <div class="step-body">
+                    ${bodyControlsHtml}
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        // ステップ値の簡易同期
+        function updateStepValue(stepId, key, value) {
+            const step = programSteps.find(s => s.id === stepId);
+            if (step) {
+                step[key] = value;
+                if (key === 'loopCount') {
+                    updateStepLoopVisuals();
+                }
+            }
+        }
+
+        // 動画撮影用時間の同期 (分・秒 → トータル秒)
+        function updateRecordDuration(stepId) {
+            const step = programSteps.find(s => s.id === stepId);
+            if (step) {
+                const min = parseInt(document.getElementById(`step-rec-m-${stepId}`).value) || 0;
+                const sec = parseInt(document.getElementById(`step-rec-s-${stepId}`).value) || 0;
+                step.duration = (min * 60) + sec;
+            }
+        }
+
+        // ループの視覚的配置 (インデント) の最適化
+        function updateStepLoopVisuals() {
+            let indentActive = false;
+            programSteps.forEach((step) => {
+                const card = document.getElementById(`step-card-${step.id}`);
+                if (!card) return;
+
+                if (step.type === 'loop_start') {
+                    card.classList.remove('in-loop');
+                    indentActive = true;
+                } else if (step.type === 'loop_end') {
+                    indentActive = false;
+                    card.classList.remove('in-loop');
+                } else {
+                    if (indentActive) {
+                        card.classList.add('in-loop');
+                    } else {
+                        card.classList.remove('in-loop');
+                    }
+                }
+            });
+        }
+
+
+        /* 非同期シーケンス実行エンジン (コアロジック) */
+
+        // 実行ボタンクリックのトグル
+        async function toggleProgram() {
+            if (isProgramRunning) {
+                stopProgram();
+            } else {
+                await startProgram();
+            }
+        }
+
+        // プログラムの起動
+        async function startProgram() {
+            if (programSteps.length === 0) {
+                alert("シーケンスプログラムにステップがありません。");
+                return;
+            }
+
+            // 実行状態にUIを変更
+            isProgramRunning = true;
+            shouldStopProgram = false;
+            activeMediaRecorders = [];
+
+            const runBtn = document.getElementById('btn-run-program');
+            runBtn.innerHTML = `
+                <span class="preview-status recording" style="display:inline-block; width:10px; height:10px; margin-right:4px;"></span>
+                実行中
+            `;
+            runBtn.classList.replace('btn-success', 'btn-warning');
+            
+            document.getElementById('btn-stop-program').disabled = false;
+            disableEditorUi(true); // 実行中はエディターの再構成ボタンをガード
+
+            log("====== 撮影プログラム実行開始 ======", 'info');
+            playSynthesizedSound('start');
+
+            try {
+                activeProgramPromise = runEngineLoop();
+                await activeProgramPromise;
+            } catch (err) {
+                log(`プログラムが例外エラーで異常終了しました: ${err.message}`, 'error');
+            } finally {
+                // 終了後のリセット
+                resetProgramUi();
+                playSynthesizedSound('stop');
+            }
+        }
+
+        // 実行エンジンの終了処理
+        function stopProgram() {
+            if (!isProgramRunning) return;
+            
+            log("🛑 プログラムの停止要求を受信しました。処理を強制終了しています...", 'warning');
+            shouldStopProgram = true;
+
+            // 動作中の MediaRecorder を一括停止
+            activeMediaRecorders.forEach((rec) => {
+                if (rec.state === 'recording') {
+                    rec.stop();
+                }
+            });
+            activeMediaRecorders = [];
+        }
+
+        // UIコントロールのリセット
+        function resetProgramUi() {
+            isProgramRunning = false;
+            activeProgramPromise = null;
+
+            const runBtn = document.getElementById('btn-run-program');
+            runBtn.innerHTML = `
+                <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                プログラム実行
+            `;
+            runBtn.classList.replace('btn-warning', 'btn-success');
+
+            document.getElementById('btn-stop-program').disabled = true;
+            disableEditorUi(false);
+
+            // すべてのハイライト表示を取り消す
+            document.querySelectorAll('.step-card').forEach(card => card.classList.remove('executing'));
+        }
+
+        // 実行中に不要なボタンをロックするヘルパー
+        function disableEditorUi(disabled) {
+            document.getElementById('btn-add-camera').disabled = disabled;
+            document.querySelectorAll('#sidebar select, #sidebar input').forEach(el => el.disabled = disabled);
+            document.querySelectorAll('.step-card button').forEach(el => el.disabled = disabled);
+            document.querySelectorAll('.camera-card button').forEach(el => el.disabled = disabled);
+        }
+
+        // プログラム全体の非同期ループ処理 (インタープリタ)
+        async function runEngineLoop() {
+            let pc = 0; // プログラムカウンタ
+            let loopStack = []; // ループ処理用スタック [{ pc, count, maxCount }]
+
+            while (pc < programSteps.length) {
+                if (shouldStopProgram) {
+                    log("プログラムの強制停止を実行しました。", 'warning');
+                    break;
+                }
+
+                const step = programSteps[pc];
+                
+                // 実行ステップのハイライト処理
+                document.querySelectorAll('.step-card').forEach(card => card.classList.remove('executing'));
+                const stepCard = document.getElementById(`step-card-${step.id}`);
+                if (stepCard) {
+                    stepCard.classList.add('executing');
+                    // 自動スクロールして見える位置に収める
+                    stepCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+
+                log(`[ステップ ${pc + 1}/${programSteps.length}] ${step.type.toUpperCase()} を実行中...`);
+
+                // 各コマンド処理
+                if (step.type === 'capture') {
+                    // 静止画撮影 (プレビューがONでない場合は最速起動)
+                    const cam = activeCameras.find(c => c.id === step.cameraId);
+                    if (cam) {
+                        await cam.capture();
+                    } else {
+                        log(`カメラ ID "${step.cameraId}" が見つかりません。スキップします。`, 'error');
+                    }
+                    pc++;
+                } 
+                else if (step.type === 'record') {
+                    // 動画録画 (プレビューがONでない場合は最速起動)
+                    const cam = activeCameras.find(c => c.id === step.cameraId);
+                    if (cam) {
+                        const ok = await cam.startRecording();
+                        if (ok) {
+                            // 録画時間中待機 (1秒ごとに停止シグナルを確認)
+                            const durationMs = step.duration * 1000;
+                            const checkInterval = 200;
+                            let elapsed = 0;
+                            
+                            log(`${cam.name} 録画完了予定時間まで待機します: ${step.duration}秒`);
+                            while (elapsed < durationMs && !shouldStopProgram) {
+                                await sleep(checkInterval);
+                                elapsed += checkInterval;
+                            }
+                            cam.stopRecording();
+                            await sleep(2200); // メディアの圧縮・保存遅延をカバー
+                        } else {
+                            // カメラの起動や録画開始に失敗した場合、同等のスリープを実行
+                            log(`⚠️ ${cam.name} の起動または録画開始に失敗しました。時間調整のため、録画時間と同等の待機を行います: ${step.duration}秒`, 'warning');
+                            const durationMs = step.duration * 1000;
+                            const checkInterval = 200;
+                            let elapsed = 0;
+                            while (elapsed < durationMs && !shouldStopProgram) {
+                                await sleep(checkInterval);
+                                elapsed += checkInterval;
+                            }
+                        }
+                    } else {
+                        // カメラが存在しない場合、同等のスリープを実行
+                        log(`❌ カメラ ID "${step.cameraId}" が見つかりません。時間調整のため、録画時間と同等の待機を行います: ${step.duration}秒`, 'error');
+                        const durationMs = step.duration * 1000;
+                        const checkInterval = 200;
+                        let elapsed = 0;
+                        while (elapsed < durationMs && !shouldStopProgram) {
+                            await sleep(checkInterval);
+                            elapsed += checkInterval;
+                        }
+                    }
+                    pc++;
+                } 
+                else if (step.type === 'preview_on') {
+                    // プレビューON (必ず5秒間待機する)
+                    const cam = activeCameras.find(c => c.id === step.cameraId);
+                    if (cam) {
+                        log(`[${cam.name}] プレビューをONにします。起動および安定化待機を開始します (5.0秒固定)...`, 'info');
+                        await cam.startPreview();
+                        
+                        const waitTime = 5000; // 必ず5秒間かかる仕様
+                        const checkInterval = 200;
+                        let elapsed = 0;
+                        while (elapsed < waitTime && !shouldStopProgram) {
+                            await sleep(checkInterval);
+                            elapsed += checkInterval;
+                        }
+                        log(`[${cam.name}] プレビューのONおよび5秒間の起動安定化待機が完了しました。`);
+                    } else {
+                        log(`カメラ ID "${step.cameraId}" が見つかりません。スキップします。`, 'error');
+                    }
+                    pc++;
+                }
+                else if (step.type === 'preview_off') {
+                    // プレビューOFF (最速でOFF)
+                    const cam = activeCameras.find(c => c.id === step.cameraId);
+                    if (cam) {
+                        log(`[${cam.name}] プレビューをOFFにします。`, 'info');
+                        cam.stopPreview();
+                    } else {
+                        log(`カメラ ID "${step.cameraId}" が見つかりません。スキップします。`, 'error');
+                    }
+                    pc++;
+                }
+                else if (step.type === 'sleep') {
+                    // スリープ
+                    const durationMs = step.sleepTime * 1000;
+                    const checkInterval = 200;
+                    let elapsed = 0;
+                    log(`スリープ待機に入ります: ${step.sleepTime}秒`);
+                    while (elapsed < durationMs && !shouldStopProgram) {
+                        await sleep(checkInterval);
+                        elapsed += checkInterval;
+                    }
+                    pc++;
+                } 
+                else if (step.type === 'loop_start') {
+                    // ループ開始
+                    let currentLoop = loopStack.find(l => l.pc === pc);
+                    if (!currentLoop) {
+                        currentLoop = {
+                            pc: pc,
+                            count: step.loopCount,
+                            maxCount: step.loopCount
+                        };
+                        loopStack.push(currentLoop);
+                        log(`🔁 ループブロック開始: 計 ${step.loopCount} 回`, 'info');
+                    }
+                    pc++;
+                } 
+                else if (step.type === 'loop_end') {
+                    // ループ終了
+                    if (loopStack.length > 0) {
+                        let currentLoop = loopStack[loopStack.length - 1];
+                        currentLoop.count--;
+                        
+                        log(`↩️ ループ反復完了 (残り回数: ${currentLoop.count}/${currentLoop.maxCount})`);
+
+                        if (currentLoop.count > 0 && !shouldStopProgram) {
+                            // ループ先頭へジャンプ (loop_start ステップの位置へ)
+                            pc = currentLoop.pc;
+                        } else {
+                            // ループ最大回数に達したためスタックから外して次へ
+                            loopStack.pop();
+                            log("🔁 ループブロックを完了しました。", 'info');
+                            pc++;
+                        }
+                    } else {
+                        log("警告: 対応する 'ループ開始' がない 'ループ終了' を検出しました。無視して進みます。", 'warning');
+                        pc++;
+                    }
+                }
+
+                // 各ステップ終了時の極小遅延 (CPU負荷・描画対策)
+                await sleep(100);
+            }
+
+            log("====== 撮影プログラム実行終了 ======", 'success');
+        }
+
+
+        /* 音声シンセサイザー (Web Audio API) */
+
+        function playSynthesizedSound(action) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (action === 'capture') {
+                    // プレミアム高音質なシャッターサウンド
+                    const bufferSize = ctx.sampleRate * 0.15;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 1500;
+                    
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+                    
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    const osc = ctx.createOscillator();
+                    const oscGain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1800, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.08);
+                    
+                    oscGain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+                    
+                    osc.connect(oscGain);
+                    oscGain.connect(ctx.destination);
+                    
+                    noise.start();
+                    osc.start();
+                    noise.stop(ctx.currentTime + 0.15);
+                    osc.stop(ctx.currentTime + 0.15);
+                } 
+                else if (action === 'record_start') {
+                    // 電子音「ピピッ」 (録画開始)
+                    const now = ctx.currentTime;
+                    const osc1 = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(1000, now);
+                    osc1.frequency.setValueAtTime(1200, now + 0.08);
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.setValueAtTime(0.15, now + 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                    
+                    osc1.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc1.start(now);
+                    osc1.stop(now + 0.2);
+                }
+                else if (action === 'record_stop') {
+                    // 電子音「ピピポー」 (録画終了)
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    osc.frequency.setValueAtTime(1000, now + 0.08);
+                    osc.frequency.setValueAtTime(800, now + 0.16);
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.setValueAtTime(0.15, now + 0.16);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.28);
+                }
+                else if (action === 'start') {
+                    // 起動起動アラートトーン
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+                else if (action === 'stop') {
+                    // 停止・完了トーン
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(783.99, now); // G5
+                    osc.frequency.setValueAtTime(523.25, now + 0.15); // C5
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch (err) {
+                console.warn("Web Audio はまだインタラクションが無いため制限されています", err);
+            }
+        }
+
+
+        /* ユーティリティヘルパー */
+
+        // タイムスタンプ付ログ出力
+        function log(message, type = 'normal') {
+            const container = document.getElementById('console-logs-container');
+            if (!container) return;
+
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry`;
+            
+            let classType = '';
+            if (type === 'error') classType = 'log-error';
+            else if (type === 'warning') classType = 'log-error'; // 警告も赤っぽく
+            else if (type === 'info') classType = 'log-info';
+            else if (type === 'success') classType = 'log-info'; // 緑
+
+            entry.innerHTML = `
+                <span class="log-time">[${timeStr}]</span>
+                <span class="${classType}">${message}</span>
+            `;
+
+            container.appendChild(entry);
+            
+            // 自動的に一番下までスクロール
+            container.scrollTop = container.scrollHeight;
+
+            // ログが多すぎる場合は古いものを削除 (上限100行)
+            while (container.childNodes.length > 100) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        // ログのクリア
+        function clearLogs() {
+            const container = document.getElementById('console-logs-container');
+            if (container) {
+                container.innerHTML = '';
+                log("ログモニターをクリアしました。");
+            }
+        }
+
+        // ミリ秒スリープ Promise
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 日付フォーマット YYYY-MM-DD_hh-mm-ss
+        function getFormattedDate() {
+            const now = new Date();
+            const pad = num => String(num).padStart(2, '0');
+            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+        }
+    </script>
+</body>
+</html>
